@@ -1,992 +1,1376 @@
-document.addEventListener('DOMContentLoaded', () => {
-    const KEYCODES = { "Special": ["KC_NO", "KC_TRNS", "L_LOWER", "SW_USB_BT", "KC_RESET_KM", "KC_REBOOT_DEF"], "Alphabet": [...Array(26)].map((_, i) => `HID_KEY_${String.fromCharCode(65 + i)}`), "Numbers": [...Array(10)].map((_, i) => `HID_KEY_${(i + 1) % 10}`), "Function": [...Array(12)].map((_, i) => `HID_KEY_F${i + 1}`), "Modifiers": ["HID_KEY_CONTROL_LEFT", "HID_KEY_SHIFT_LEFT", "HID_KEY_ALT_LEFT", "HID_KEY_GUI_LEFT", "HID_KEY_CONTROL_RIGHT", "HID_KEY_SHIFT_RIGHT", "HID_KEY_ALT_RIGHT", "HID_KEY_GUI_RIGHT"], "Control & Whitespace": ["HID_KEY_ENTER", "HID_KEY_ESCAPE", "HID_KEY_BACKSPACE", "HID_KEY_DELETE", "HID_KEY_TAB", "HID_KEY_SPACE", "HID_KEY_APPLICATION", "HID_KEY_CAPS_LOCK"], "Navigation": ["HID_KEY_ARROW_RIGHT", "HID_KEY_ARROW_LEFT", "HID_KEY_ARROW_DOWN", "HID_KEY_ARROW_UP", "HID_KEY_INSERT", "HID_KEY_HOME", "HID_KEY_END", "HID_KEY_PAGE_UP", "HID_KEY_PAGE_DOWN", "HID_KEY_PRINT_SCREEN", "HID_KEY_SCROLL_LOCK", "HID_KEY_PAUSE"], "Symbols (US)": ["HID_KEY_MINUS", "HID_KEY_EQUAL", "HID_KEY_BRACKET_LEFT", "HID_KEY_BRACKET_RIGHT", "HID_KEY_BACKSLASH", "HID_KEY_SEMICOLON", "HID_KEY_APOSTROPHE", "HID_KEY_GRAVE", "HID_KEY_COMMA", "HID_KEY_PERIOD", "HID_KEY_SLASH"], "JP Layout": ["HID_KEY_LANG1", "HID_KEY_LANG2", "HID_KEY_INTERNATIONAL1", "HID_KEY_INTERNATIONAL3"], "Mouse": ["KC_MS_BTN1", "KC_MS_BTN2", "KC_MS_BTN3", "KC_MS_BTN4", "KC_MS_BTN5", "KC_MS_UP", "KC_MS_DOWN", "KC_MS_LEFT", "KC_MS_RIGHT"] };
-    const CATEGORY_DESCRIPTIONS = { "Special": "レイヤー切り替えやモード変更、プロファイルリセットなど、キーボードの特殊機能を制御します。", "Alphabet": "AからZまでのアルファベットキーです。", "Numbers": "0から9までの数字キーです。", "Function": "F1からF12までのファンクションキーです。", "Modifiers": "Ctrl、Shift、Alt、GUI (Windows/Command) などの修飾キーです。", "Control & Whitespace": "Enter、Esc、スペースキーなど、入力制御や空白に関連するキーです。", "Navigation": "矢印キーやHome、Endなど、カーソル移動やページ操作を行うキーです。", "Symbols (US)": "US配列における一般的な記号キーです。 (, ; [ ]など)", "JP Layout": "日本語配列特有のキーです。(半角/全角、無変換、変換、カタカナひらがな等)", "Mouse": "マウスのクリックやカーソル移動をキーに割り当てます。" };
-    const KEYCODE_DESCRIPTIONS = { "KC_NO": "No Action: このキーを押しても何も起こりません。", "KC_TRNS": "Transparent: 下のレイヤーのキーを透過させます。 (レイヤー1以上で有効)", "L_LOWER": "Lower Layer: 押している間、レイヤー1 (Lower) に切り替えます。", "SW_USB_BT": "Mode Switch: USB接続とBluetooth接続を切り替えます。", "KC_RESET_KM": "Reset Keymap: 保存されたカスタムキーマップを完全に消去し、初期状態で再起動します。", "KC_REBOOT_DEF": "Reboot to Default: カスタムキーマップを維持したまま、一時的に初期設定で再起動します。", "HID_KEY_LANG1": "半角/全角・漢字キー (JP)", "HID_KEY_LANG2": "カタカナ・ひらがな・ローマ字キー (JP)", "HID_KEY_INTERNATIONAL1": "¥キー (JP)", "HID_KEY_INTERNATIONAL3": "_ (アンダースコア) キー (JP)" };
-    const JIS_KEY_MAP = { 'HID_KEY_GRAVE': '半/全', 'HID_KEY_MINUS': 'ー', 'HID_KEY_EQUAL': '^', 'HID_KEY_BRACKET_LEFT': '@', 'HID_KEY_BRACKET_RIGHT': '[', 'HID_KEY_BACKSLASH': ']', 'HID_KEY_SEMICOLON': ';', 'HID_KEY_APOSTROPHE': ':', 'HID_KEY_INTERNATIONAL1': '¥', 'HID_KEY_INTERNATIONAL3': '\\' };
-    const EVENT_CODE_TO_KEYCODE_MAP = { 'KeyA':'HID_KEY_A','KeyB':'HID_KEY_B','KeyC':'HID_KEY_C','KeyD':'HID_KEY_D','KeyE':'HID_KEY_E','KeyF':'HID_KEY_F','KeyG':'HID_KEY_G','KeyH':'HID_KEY_H','KeyI':'HID_KEY_I','KeyJ':'HID_KEY_J','KeyK':'HID_KEY_K','KeyL':'HID_KEY_L','KeyM':'HID_KEY_M','KeyN':'HID_KEY_N','KeyO':'HID_KEY_O','KeyP':'HID_KEY_P','KeyQ':'HID_KEY_Q','KeyR':'HID_KEY_R','KeyS':'HID_KEY_S','KeyT':'HID_KEY_T','KeyU':'HID_KEY_U','KeyV':'HID_KEY_V','KeyW':'HID_KEY_W','KeyX':'HID_KEY_X','KeyY':'HID_KEY_Y','KeyZ':'HID_KEY_Z', 'Digit1':'HID_KEY_1','Digit2':'HID_KEY_2','Digit3':'HID_KEY_3','Digit4':'HID_KEY_4','Digit5':'HID_KEY_5','Digit6':'HID_KEY_6','Digit7':'HID_KEY_7','Digit8':'HID_KEY_8','Digit9':'HID_KEY_9','Digit0':'HID_KEY_0', 'F1':'HID_KEY_F1','F2':'HID_KEY_F2','F3':'HID_KEY_F3','F4':'HID_KEY_F4','F5':'HID_KEY_F5','F6':'HID_KEY_F6','F7':'HID_KEY_F7','F8':'HID_KEY_F8','F9':'HID_KEY_F9','F10':'HID_KEY_F10','F11':'HID_KEY_F11','F12':'HID_KEY_F12', 'Enter':'HID_KEY_ENTER','Escape':'HID_KEY_ESCAPE','Backspace':'HID_KEY_BACKSPACE','Tab':'HID_KEY_TAB','Space':'HID_KEY_SPACE','Minus':'HID_KEY_MINUS','Equal':'HID_KEY_EQUAL','BracketLeft':'HID_KEY_BRACKET_LEFT','BracketRight':'HID_KEY_BRACKET_RIGHT','Backslash':'HID_KEY_BACKSLASH','Semicolon':'HID_KEY_SEMICOLON','Quote':'HID_KEY_APOSTROPHE','Backquote':'HID_KEY_GRAVE','Comma':'HID_KEY_COMMA','Period':'HID_KEY_PERIOD','Slash':'HID_KEY_SLASH', 'CapsLock':'HID_KEY_CAPS_LOCK','ScrollLock':'HID_KEY_SCROLL_LOCK','Pause':'HID_KEY_PAUSE','Insert':'HID_KEY_INSERT','Home':'HID_KEY_HOME','PageUp':'HID_KEY_PAGE_UP','Delete':'HID_KEY_DELETE','End':'HID_KEY_END','PageDown':'HID_KEY_PAGE_DOWN', 'ArrowRight':'HID_KEY_ARROW_RIGHT','ArrowLeft':'HID_KEY_ARROW_LEFT','ArrowDown':'HID_KEY_ARROW_DOWN','ArrowUp':'HID_KEY_ARROW_UP', 'ControlLeft':'HID_KEY_CONTROL_LEFT','ShiftLeft':'HID_KEY_SHIFT_LEFT','AltLeft':'HID_KEY_ALT_LEFT','MetaLeft':'HID_KEY_GUI_LEFT', 'ControlRight':'HID_KEY_CONTROL_RIGHT','ShiftRight':'HID_KEY_SHIFT_RIGHT','AltRight':'HID_KEY_ALT_RIGHT','MetaRight':'HID_KEY_GUI_RIGHT', 'IntlYen': 'HID_KEY_INTERNATIONAL1', 'IntlRo': 'HID_KEY_INTERNATIONAL3' };
-    const physical_layout_order_name = [ "sw1", "sw62", "sw2", "sw5", "sw9", "sw13", "sw17", "sw21", "sw25", "sw30", "sw35", "sw40", "sw45", "sw50", "sw55", "sw59", "sw63", "sw3", "sw6", "sw10", "sw14", "sw18", "sw22", "sw26", "sw31", "sw36", "sw41", "sw46", "sw51", "sw56", "sw60", "sw4", "sw7", "sw11", "sw15", "sw19", "sw23", "sw27", "sw32", "sw37", "sw42", "sw47", "sw52", "sw57", "sw61", "sw8", "sw12", "sw16", "sw20", "sw24", "sw28", "sw33", "sw38", "sw43", "sw48", "sw53", "sw58", "sw29", "sw34", "sw39", "sw44", "sw49", "sw54", "D10", "D6" ];
-    
-    let keymapData = [
-      [ 'KC_MS_BTN1', 'KC_MS_BTN2', 'HID_KEY_ESCAPE', 'HID_KEY_1', 'HID_KEY_2', 'HID_KEY_3', 'HID_KEY_4', 'HID_KEY_5', 'HID_KEY_6', 'HID_KEY_7', 'HID_KEY_8', 'HID_KEY_9', 'HID_KEY_0', 'HID_KEY_MINUS', 'HID_KEY_EQUAL', 'HID_KEY_INTERNATIONAL1', 'HID_KEY_DELETE', 'HID_KEY_GRAVE', 'HID_KEY_Q', 'HID_KEY_W', 'HID_KEY_E', 'HID_KEY_R', 'HID_KEY_T', 'HID_KEY_Y', 'HID_KEY_U', 'HID_KEY_I', 'HID_KEY_O', 'HID_KEY_P', 'HID_KEY_BRACKET_LEFT', 'HID_KEY_BRACKET_RIGHT', 'HID_KEY_BACKSPACE', 'HID_KEY_TAB', 'HID_KEY_A', 'HID_KEY_S', 'HID_KEY_D', 'HID_KEY_F', 'HID_KEY_G', 'HID_KEY_H', 'HID_KEY_J', 'HID_KEY_K', 'HID_KEY_L', 'HID_KEY_SEMICOLON', 'HID_KEY_APOSTROPHE', 'HID_KEY_BACKSLASH', 'HID_KEY_ENTER', 'HID_KEY_Z', 'HID_KEY_X', 'HID_KEY_C', 'HID_KEY_V', 'HID_KEY_B', 'HID_KEY_N', 'HID_KEY_M', 'HID_KEY_COMMA', 'HID_KEY_PERIOD', 'HID_KEY_SLASH', 'HID_KEY_INTERNATIONAL3', 'HID_KEY_SHIFT_LEFT', 'HID_KEY_SPACE', 'HID_KEY_GUI_LEFT', 'HID_KEY_ALT_LEFT', 'HID_KEY_CONTROL_LEFT', 'KC_MS_BTN3', 'L_LOWER', 'KC_MS_BTN4', 'KC_MS_BTN5'],
-      [ 'KC_TRNS', 'KC_TRNS', 'SW_USB_BT', 'HID_KEY_F1', 'HID_KEY_F2', 'HID_KEY_F3', 'HID_KEY_F4', 'HID_KEY_F5', 'HID_KEY_F6', 'HID_KEY_F7', 'HID_KEY_F8', 'HID_KEY_F9', 'HID_KEY_F10', 'HID_KEY_F11', 'HID_KEY_F12', 'KC_TRNS', 'KC_TRNS', 'KC_TRNS', 'KC_TRNS', 'HID_KEY_ARROW_UP', 'KC_TRNS', 'KC_TRNS', 'KC_TRNS', 'KC_TRNS', 'KC_TRNS', 'KC_TRNS', 'KC_TRNS', 'KC_TRNS', 'KC_TRNS', 'KC_TRNS', 'KC_TRNS', 'KC_TRNS', 'HID_KEY_ARROW_LEFT', 'HID_KEY_ARROW_DOWN', 'HID_KEY_ARROW_RIGHT', 'KC_TRNS', 'KC_TRNS', 'KC_TRNS', 'KC_TRNS', 'KC_TRNS', 'KC_TRNS', 'KC_TRNS', 'KC_TRNS', 'KC_TRNS', 'KC_TRNS', 'HID_KEY_END', 'HID_KEY_HOME', 'HID_KEY_PAGE_UP', 'HID_KEY_PAGE_DOWN', 'KC_TRNS', 'KC_TRNS', 'KC_TRNS', 'KC_TRNS', 'KC_TRNS', 'KC_TRNS', 'KC_TRNS', 'KC_TRNS', 'KC_TRNS', 'KC_TRNS', 'KC_TRNS', 'KC_TRNS', 'KC_TRNS', 'L_LOWER', 'KC_RESET_KM', 'KC_REBOOT_DEF']
-    ];
+'use strict';
+// ===================================================
+// PotaKB Configurator v2.0 — メインスクリプト
+// ===================================================
 
-    const KEYCODE_DISPLAY_MAP = {'KC_MS_BTN1': 'L Click', 'KC_MS_BTN2': 'R Click', 'KC_MS_BTN3': 'M Click', 'KC_MS_BTN4': 'Back', 'KC_MS_BTN5': 'Fwd', 'KC_MS_UP': 'M Up', 'KC_MS_DOWN': 'M Down', 'KC_MS_LEFT': 'M Left', 'KC_MS_RIGHT': 'M Right', 'HID_KEY_CONTROL_LEFT': 'L Ctrl', 'HID_KEY_SHIFT_LEFT': 'L Shift', 'HID_KEY_ALT_LEFT': 'L Alt', 'HID_KEY_GUI_LEFT': 'L GUI', 'HID_KEY_CONTROL_RIGHT': 'R Ctrl', 'HID_KEY_SHIFT_RIGHT': 'R Shift', 'HID_KEY_ALT_RIGHT': 'R Alt', 'HID_KEY_GUI_RIGHT': 'R GUI', 'HID_KEY_ENTER': 'Enter', 'HID_KEY_ESCAPE': 'Esc', 'HID_KEY_BACKSPACE': 'BSPC', 'HID_KEY_DELETE': 'Del', 'HID_KEY_TAB': 'Tab', 'HID_KEY_SPACE': 'Space', 'HID_KEY_APPLICATION': 'App', 'HID_KEY_CAPS_LOCK': 'Caps', 'HID_KEY_ARROW_RIGHT': '→', 'HID_KEY_ARROW_LEFT': '←', 'HID_KEY_ARROW_DOWN': '↓', 'HID_KEY_ARROW_UP': '↑', 'HID_KEY_INSERT': 'Ins', 'HID_KEY_HOME': 'Home', 'HID_KEY_END': 'End', 'HID_KEY_PAGE_UP': 'PgUp', 'HID_KEY_PAGE_DOWN': 'PgDn', 'HID_KEY_PRINT_SCREEN': 'PrtSc', 'HID_KEY_SCROLL_LOCK': 'ScLk', 'HID_KEY_PAUSE': 'Pause', 'HID_KEY_MINUS': '-', 'HID_KEY_EQUAL': '=', 'HID_KEY_BRACKET_LEFT': '[', 'HID_KEY_BRACKET_RIGHT': ']', 'HID_KEY_BACKSLASH': '\\', 'HID_KEY_SEMICOLON': ';', 'HID_KEY_APOSTROPHE': "'", 'HID_KEY_GRAVE': '`', 'HID_KEY_COMMA': ',', 'HID_KEY_PERIOD': '.', 'HID_KEY_SLASH': '/', 'KC_TRNS': '▽', 'KC_NO': '×', 'L_LOWER': 'Lower', 'SW_USB_BT': 'Mode', 'KC_RESET_KM': 'Reset KM', 'KC_REBOOT_DEF': 'Boot DEF', 'HID_KEY_LANG1': 'Lang1', 'HID_KEY_LANG2': 'Lang2', 'HID_KEY_INTERNATIONAL1': 'Intl1', 'HID_KEY_INTERNATIONAL3': 'Intl3'};
-    const KEYCODE_TO_VALUE_MAP = { "KC_NO": 0, "KC_TRNS": 0, "HID_KEY_A": 4, "HID_KEY_B": 5, "HID_KEY_C": 6, "HID_KEY_D": 7, "HID_KEY_E": 8, "HID_KEY_F": 9, "HID_KEY_G": 10, "HID_KEY_H": 11, "HID_KEY_I": 12, "HID_KEY_J": 13, "HID_KEY_K": 14, "HID_KEY_L": 15, "HID_KEY_M": 16, "HID_KEY_N": 17, "HID_KEY_O": 18, "HID_KEY_P": 19, "HID_KEY_Q": 20, "HID_KEY_R": 21, "HID_KEY_S": 22, "HID_KEY_T": 23, "HID_KEY_U": 24, "HID_KEY_V": 25, "HID_KEY_W": 26, "HID_KEY_X": 27, "HID_KEY_Y": 28, "HID_KEY_Z": 29, "HID_KEY_1": 30, "HID_KEY_2": 31, "HID_KEY_3": 32, "HID_KEY_4": 33, "HID_KEY_5": 34, "HID_KEY_6": 35, "HID_KEY_7": 36, "HID_KEY_8": 37, "HID_KEY_9": 38, "HID_KEY_0": 39, "HID_KEY_ENTER": 40, "HID_KEY_ESCAPE": 41, "HID_KEY_BACKSPACE": 42, "HID_KEY_TAB": 43, "HID_KEY_SPACE": 44, "HID_KEY_MINUS": 45, "HID_KEY_EQUAL": 46, "HID_KEY_BRACKET_LEFT": 47, "HID_KEY_BRACKET_RIGHT": 48, "HID_KEY_BACKSLASH": 49, "HID_KEY_SEMICOLON": 51, "HID_KEY_APOSTROPHE": 52, "HID_KEY_GRAVE": 53, "HID_KEY_COMMA": 54, "HID_KEY_PERIOD": 55, "HID_KEY_SLASH": 56, "HID_KEY_CAPS_LOCK": 57, "HID_KEY_F1": 58, "HID_KEY_F2": 59, "HID_KEY_F3": 60, "HID_KEY_F4": 61, "HID_KEY_F5": 62, "HID_KEY_F6": 63, "HID_KEY_F7": 64, "HID_KEY_F8": 65, "HID_KEY_F9": 66, "HID_KEY_F10": 67, "HID_KEY_F11": 68, "HID_KEY_F12": 69, "HID_KEY_PRINT_SCREEN": 70, "HID_KEY_SCROLL_LOCK": 71, "HID_KEY_PAUSE": 72, "HID_KEY_INSERT": 73, "HID_KEY_HOME": 74, "HID_KEY_PAGE_UP": 75, "HID_KEY_DELETE": 76, "HID_KEY_END": 77, "HID_KEY_PAGE_DOWN": 78, "HID_KEY_ARROW_RIGHT": 79, "HID_KEY_ARROW_LEFT": 80, "HID_KEY_ARROW_DOWN": 81, "HID_KEY_ARROW_UP": 82, "HID_KEY_CONTROL_LEFT": 224, "HID_KEY_SHIFT_LEFT": 225, "HID_KEY_ALT_LEFT": 226, "HID_KEY_GUI_LEFT": 227, "HID_KEY_CONTROL_RIGHT": 228, "HID_KEY_SHIFT_RIGHT": 229, "HID_KEY_ALT_RIGHT": 230, "HID_KEY_GUI_RIGHT": 231, "HID_KEY_APPLICATION": 101, "HID_KEY_LANG1": 144, "HID_KEY_LANG2": 145, "HID_KEY_INTERNATIONAL1": 135, "HID_KEY_INTERNATIONAL3": 137, "KC_MS_UP": 513, "KC_MS_DOWN": 514, "KC_MS_LEFT": 515, "KC_MS_RIGHT": 516, "KC_MS_BTN1": 517, "KC_MS_BTN2": 518, "KC_MS_BTN3": 519, "KC_MS_BTN4": 520, "KC_MS_BTN5": 521, "L_LOWER": 769, "SW_USB_BT": 1025, "KC_RESET_KM": 1281, "KC_REBOOT_DEF": 1282 };
-    
-    const VALUE_TO_KEYCODE_MAP = {};
-    for (const [key, value] of Object.entries(KEYCODE_TO_VALUE_MAP)) {
-        if (value !== 0 || key === "KC_NO") {
-            VALUE_TO_KEYCODE_MAP[value] = key;
-        }
-    }
-    
-    const KEYMAP_SERVICE_UUID = 'adaf0001-c332-42a8-93bd-25e905756cb8';
-    const KEYMAP_CHAR_UUID = 'adaf0002-c332-42a8-93bd-25e905756cb8';
-    const CONFIG_CHAR_UUID = 'adaf0003-c332-42a8-93bd-25e905756cb8';
-    const BATTERY_SERVICE_UUID = '0000180f-0000-1000-8000-00805f9b34fb';
-    const BATTERY_CHAR_UUID = '00002a19-0000-1000-8000-00805f9b34fb';
-    
-    let currentLayer = 0; 
-    let selectedKeyIndices = new Set(); 
-    let keymapCharacteristic = null;
-    let configCharacteristic = null;
-    let batteryCharacteristic = null;
-    let bluetoothDevice = null;
-    let serialPort = null;
-    let isWaitingForKeypress = false; 
-    let targetKeyIndexForCapture = null;
-    let connectionType = null;
-    let batteryCheckInterval = null;
-    
-    const keyboardContainer = document.getElementById('keyboard-container');
-    const layerSelector = document.getElementById('layer-selector');
-    const generateButton = document.getElementById('generate-button');
-    const fileImporter = document.getElementById('file-importer');
-    const tabButtonsContainer = document.getElementById('tab-buttons-container');
-    const tabContentContainer = document.getElementById('tab-content-container');
-    const paletteDescription = document.getElementById('palette-description');
-    const keyDescription = document.getElementById('key-description');
-    const connectButton = document.getElementById('connect-button');
-    const disconnectButton = document.getElementById('disconnect-button');
-    const connectUsbButton = document.getElementById('connect-usb-button');
-    const disconnectUsbButton = document.getElementById('disconnect-usb-button');
-    const saveToKeyboardButton = document.getElementById('save-to-keyboard-button');
-    const loadFromKeyboardButton = document.getElementById('load-from-keyboard-button');
-    const connectionStatus = document.getElementById('connection-status');
-    const batteryInfo = document.getElementById('battery-info');
-    const debugLog = document.getElementById('debug-log');
-    const jisLayoutToggle = document.getElementById('jis-layout-toggle');
+// ===================================================
+// 1. キーコード定義マップ  value → {name, label, category}
+// ===================================================
+const KC_MAP = (() => {
+  const m = new Map();
+  const add = (value, name, label, category) => m.set(value, { name, label, category });
 
-    function addDebugLog(message) { 
-        const timestamp = new Date().toLocaleTimeString(); 
-        debugLog.innerHTML = `[${timestamp}] ${message}<br>` + debugLog.innerHTML; 
+  // 特殊
+  add(0x0000, 'KC_NO',          '×',         'special');
+  add(0xFFFF, 'KC_TRNS',        '▽',         'special');
+  add(0x5001, 'MO(1)',          'MO(1)',      'special');
+  add(0x4001, 'SW_MODE',        'SW Mode',    'special');
+  add(0x4002, 'KC_CALIBRATE',   'Calib',      'special');
+  add(0x4003, 'KC_RESET',       'Reset',      'special');
+  add(0x4004, 'KC_REBOOT',      'Reboot',     'special');
+
+  // アルファベット
+  const A = 0x04;
+  for (let i = 0; i < 26; i++) {
+    const ch = String.fromCharCode(65 + i); // A..Z
+    add(A + i, `HID_KEY_${ch}`, ch, 'letters');
+  }
+
+  // 数字行 (1..0)
+  add(0x1E, 'HID_KEY_1', '1', 'numbers');
+  add(0x1F, 'HID_KEY_2', '2', 'numbers');
+  add(0x20, 'HID_KEY_3', '3', 'numbers');
+  add(0x21, 'HID_KEY_4', '4', 'numbers');
+  add(0x22, 'HID_KEY_5', '5', 'numbers');
+  add(0x23, 'HID_KEY_6', '6', 'numbers');
+  add(0x24, 'HID_KEY_7', '7', 'numbers');
+  add(0x25, 'HID_KEY_8', '8', 'numbers');
+  add(0x26, 'HID_KEY_9', '9', 'numbers');
+  add(0x27, 'HID_KEY_0', '0', 'numbers');
+
+  // ファンクションキー
+  for (let i = 1; i <= 12; i++) {
+    add(0x39 + i, `HID_KEY_F${i}`, `F${i}`, 'fn');
+    // 0x3A=F1 ... 0x45=F12
+  }
+
+  // 修飾キー
+  add(0xE0, 'HID_KEY_CONTROL_LEFT',  'LCtrl',  'mods');
+  add(0xE1, 'HID_KEY_SHIFT_LEFT',    'LShift', 'mods');
+  add(0xE2, 'HID_KEY_ALT_LEFT',      'LAlt',   'mods');
+  add(0xE3, 'HID_KEY_GUI_LEFT',      'LGui',   'mods');
+  add(0xE4, 'HID_KEY_CONTROL_RIGHT', 'RCtrl',  'mods');
+  add(0xE5, 'HID_KEY_SHIFT_RIGHT',   'RShift', 'mods');
+  add(0xE6, 'HID_KEY_ALT_RIGHT',     'RAlt',   'mods');
+  add(0xE7, 'HID_KEY_GUI_RIGHT',     'RGui',   'mods');
+
+  // 編集
+  add(0x28, 'HID_KEY_ENTER',     'Enter', 'edit');
+  add(0x29, 'HID_KEY_ESCAPE',    'Esc',   'edit');
+  add(0x2A, 'HID_KEY_BACKSPACE', 'BkSp',  'edit');
+  add(0x2B, 'HID_KEY_TAB',       'Tab',   'edit');
+  add(0x2C, 'HID_KEY_SPACE',     'Space', 'edit');
+  add(0x4C, 'HID_KEY_DELETE',    'Del',   'edit');
+  add(0x39, 'HID_KEY_CAPS_LOCK', 'Caps',  'edit');
+  add(0x65, 'HID_KEY_APPLICATION','Menu', 'edit');
+
+  // ナビゲーション
+  add(0x49, 'HID_KEY_INSERT',      'Ins',    'nav');
+  add(0x4A, 'HID_KEY_HOME',        'Home',   'nav');
+  add(0x4B, 'HID_KEY_PAGE_UP',     'PgUp',   'nav');
+  add(0x4D, 'HID_KEY_END',         'End',    'nav');
+  add(0x4E, 'HID_KEY_PAGE_DOWN',   'PgDn',   'nav');
+  add(0x4F, 'HID_KEY_ARROW_RIGHT', '→',      'nav');
+  add(0x50, 'HID_KEY_ARROW_LEFT',  '←',      'nav');
+  add(0x51, 'HID_KEY_ARROW_DOWN',  '↓',      'nav');
+  add(0x52, 'HID_KEY_ARROW_UP',    '↑',      'nav');
+  add(0x46, 'HID_KEY_PRINT_SCREEN','PrtSc',  'nav');
+  add(0x47, 'HID_KEY_SCROLL_LOCK', 'ScLk',   'nav');
+  add(0x48, 'HID_KEY_PAUSE',       'Pause',  'nav');
+
+  // 記号
+  add(0x2D, 'HID_KEY_MINUS',         '-',  'symbols');
+  add(0x2E, 'HID_KEY_EQUAL',         '=',  'symbols');
+  add(0x2F, 'HID_KEY_BRACKET_LEFT',  '[',  'symbols');
+  add(0x30, 'HID_KEY_BRACKET_RIGHT', ']',  'symbols');
+  add(0x31, 'HID_KEY_BACKSLASH',     '\\', 'symbols');
+  add(0x33, 'HID_KEY_SEMICOLON',     ';',  'symbols');
+  add(0x34, 'HID_KEY_APOSTROPHE',    "'",  'symbols');
+  add(0x35, 'HID_KEY_GRAVE',         '`',  'symbols');
+  add(0x36, 'HID_KEY_COMMA',         ',',  'symbols');
+  add(0x37, 'HID_KEY_PERIOD',        '.',  'symbols');
+  add(0x38, 'HID_KEY_SLASH',         '/',  'symbols');
+
+  // 日本語
+  add(0x89, 'HID_KEY_INTERNATIONAL1', 'ろ/\\', 'jp');
+  add(0x87, 'HID_KEY_INTERNATIONAL3', '¥',     'jp');
+  add(0x90, 'HID_KEY_LANG1',          'かな',  'jp');
+  add(0x91, 'HID_KEY_LANG2',          '英数',  'jp');
+
+  // マウス
+  add(0x2001, 'KC_MS_UP',        'M↑',     'mouse');
+  add(0x2002, 'KC_MS_DOWN',      'M↓',     'mouse');
+  add(0x2003, 'KC_MS_LEFT',      'M←',     'mouse');
+  add(0x2004, 'KC_MS_RIGHT',     'M→',     'mouse');
+  add(0x2005, 'KC_MS_BTN1',      'M-Btn1', 'mouse');
+  add(0x2006, 'KC_MS_BTN2',      'M-Btn2', 'mouse');
+  add(0x2007, 'KC_MS_BTN3',      'M-Btn3', 'mouse');
+  add(0x2008, 'KC_MS_BTN4',      'M-Btn4', 'mouse');
+  add(0x2009, 'KC_MS_BTN5',      'M-Btn5', 'mouse');
+  add(0x200A, 'KC_MS_SCR_UP',    'Scr↑',   'mouse');
+  add(0x200B, 'KC_MS_SCR_DOWN',  'Scr↓',   'mouse');
+  add(0x200C, 'KC_MS_SCR_LEFT',  'Scr←',   'mouse');
+  add(0x200D, 'KC_MS_SCR_RIGHT', 'Scr→',   'mouse');
+
+  return m;
+})();
+
+// キーコード値からラベル文字列を取得
+function kcLabel(v) {
+  const e = KC_MAP.get(v);
+  if (e) return e.label;
+  return `0x${v.toString(16).toUpperCase().padStart(4,'0')}`;
+}
+// キーコード値からname文字列を取得
+function kcName(v) {
+  const e = KC_MAP.get(v);
+  if (e) return e.name;
+  return `0x${v.toString(16).toUpperCase().padStart(4,'0')}`;
+}
+
+// ===================================================
+// 2. キーボードレイアウト定義
+// ===================================================
+const UNIT = 44; // px / 1u
+const GAP  = 4;  // px
+
+// レイアウト: 各行 [{idx, u, label} | {gap, u}]
+// u: キー幅 (単位u), label: オプション表示ラベル (省略時はキーコードラベルを表示)
+// gap: true のとき不可視スペーサー (u分の幅を空ける)
+// 実際の物理レイアウト (keyboard-layout.json より)
+const KEY_ROWS = [
+  // Row0: マウスボタン — sw1(1.5u) ... 12u空白 ... sw62(1.5u)
+  { cls: 'key-row-mouse', keys: [
+    { idx: 0, u: 1.5, label: 'Btn1' },
+    { gap: true, u: 12 },
+    { idx: 1, u: 1.5, label: 'Btn2' },
+  ]},
+  // Row1: 数字行 15x1u
+  { keys: [
+    { idx: 2,  u: 1 }, { idx: 3,  u: 1 }, { idx: 4,  u: 1 }, { idx: 5,  u: 1 },
+    { idx: 6,  u: 1 }, { idx: 7,  u: 1 }, { idx: 8,  u: 1 }, { idx: 9,  u: 1 },
+    { idx: 10, u: 1 }, { idx: 11, u: 1 }, { idx: 12, u: 1 }, { idx: 13, u: 1 },
+    { idx: 14, u: 1 }, { idx: 15, u: 1 }, { idx: 16, u: 1 },
+  ]},
+  // Row2: Q行 — 1.5u + 12x1u + 1.5u
+  { keys: [
+    { idx: 17, u: 1.5 }, { idx: 18, u: 1 }, { idx: 19, u: 1 }, { idx: 20, u: 1 },
+    { idx: 21, u: 1   }, { idx: 22, u: 1 }, { idx: 23, u: 1 }, { idx: 24, u: 1 },
+    { idx: 25, u: 1   }, { idx: 26, u: 1 }, { idx: 27, u: 1 }, { idx: 28, u: 1 },
+    { idx: 29, u: 1   }, { idx: 30, u: 1.5 },
+  ]},
+  // Row3: A行 — 1.75u + 12x1u + 1.25u
+  { keys: [
+    { idx: 31, u: 1.75 }, { idx: 32, u: 1 }, { idx: 33, u: 1 }, { idx: 34, u: 1 },
+    { idx: 35, u: 1    }, { idx: 36, u: 1 }, { idx: 37, u: 1 }, { idx: 38, u: 1 },
+    { idx: 39, u: 1    }, { idx: 40, u: 1 }, { idx: 41, u: 1 }, { idx: 42, u: 1 },
+    { idx: 43, u: 1    }, { idx: 44, u: 1.25 },
+  ]},
+  // Row4: Z行 — 2u空白(スティック) + 11x1u + 1.5u(LShift)
+  { keys: [
+    { gap: true, u: 2 },
+    { idx: 45, u: 1 }, { idx: 46, u: 1 }, { idx: 47, u: 1 }, { idx: 48, u: 1 },
+    { idx: 49, u: 1 }, { idx: 50, u: 1 }, { idx: 51, u: 1 }, { idx: 52, u: 1 },
+    { idx: 53, u: 1 }, { idx: 54, u: 1 }, { idx: 55, u: 1 }, { idx: 56, u: 1.5 },
+  ]},
+  // Row5: 底面 — 6u空白(スティック) + 2.5u(Space) + 5x1u
+  { keys: [
+    { gap: true, u: 6 },
+    { idx: 57, u: 2.5 }, { idx: 58, u: 1 }, { idx: 59, u: 1 },
+    { idx: 60, u: 1   }, { idx: 61, u: 1 }, { idx: 62, u: 1 },
+  ]},
+  // DirectKeys
+  { cls: 'key-row-direct', keys: [
+    { idx: 63, u: 1, label: 'Next' },
+    { idx: 64, u: 1, label: 'Back' },
+  ]},
+];
+
+// ===================================================
+// 3. アプリケーション状態
+// ===================================================
+const NUM_LAYERS = 2;
+const NUM_KEYS   = 65;
+
+// keymapData[layer][keyIndex] = keycode (uint16)
+let keymapData = Array.from({ length: NUM_LAYERS }, () => new Uint16Array(NUM_KEYS).fill(0x0000));
+
+// 選択中のキーインデックス配列
+let selectedKeys = [];
+
+// キャプチャモード (trueのとき次のkeydownを割り当て)
+let captureMode = false;
+
+// ===================================================
+// event.code → HID keycode マッピング
+// ===================================================
+const EVENT_CODE_TO_HID = {
+  // アルファベット
+  KeyA:0x04, KeyB:0x05, KeyC:0x06, KeyD:0x07, KeyE:0x08, KeyF:0x09,
+  KeyG:0x0A, KeyH:0x0B, KeyI:0x0C, KeyJ:0x0D, KeyK:0x0E, KeyL:0x0F,
+  KeyM:0x10, KeyN:0x11, KeyO:0x12, KeyP:0x13, KeyQ:0x14, KeyR:0x15,
+  KeyS:0x16, KeyT:0x17, KeyU:0x18, KeyV:0x19, KeyW:0x1A, KeyX:0x1B,
+  KeyY:0x1C, KeyZ:0x1D,
+  // 数字
+  Digit1:0x1E, Digit2:0x1F, Digit3:0x20, Digit4:0x21, Digit5:0x22,
+  Digit6:0x23, Digit7:0x24, Digit8:0x25, Digit9:0x26, Digit0:0x27,
+  // 編集
+  Enter:0x28, Escape:0x29, Backspace:0x2A, Tab:0x2B, Space:0x2C,
+  Delete:0x4C, Insert:0x49, CapsLock:0x39,
+  // 記号
+  Minus:0x2D, Equal:0x2E, BracketLeft:0x2F, BracketRight:0x30,
+  Backslash:0x31, Semicolon:0x33, Quote:0x34, Backquote:0x35,
+  Comma:0x36, Period:0x37, Slash:0x38,
+  // ナビゲーション
+  Home:0x4A, End:0x4D, PageUp:0x4B, PageDown:0x4E,
+  ArrowRight:0x4F, ArrowLeft:0x50, ArrowDown:0x51, ArrowUp:0x52,
+  PrintScreen:0x46, ScrollLock:0x47, Pause:0x48,
+  // ファンクション
+  F1:0x3A, F2:0x3B, F3:0x3C,  F4:0x3D, F5:0x3E, F6:0x3F,
+  F7:0x40, F8:0x41, F9:0x42, F10:0x43, F11:0x44, F12:0x45,
+  // 修飾
+  ControlLeft:0xE0, ShiftLeft:0xE1, AltLeft:0xE2, MetaLeft:0xE3,
+  ControlRight:0xE4, ShiftRight:0xE5, AltRight:0xE6, MetaRight:0xE7,
+  ContextMenu:0x65,
+  // 日本語 (JIS)
+  IntlRo:0x89, IntlYen:0x87, Lang1:0x90, Lang2:0x91,
+};
+
+// 現在表示中のレイヤー
+let currentLayer = 0;
+
+// 現在のパレットカテゴリ
+let currentPaletteCat = 'special';
+
+// Config オブジェクト
+let config = getDefaultConfig();
+
+// 接続状態
+let connState = 'disconnected'; // 'disconnected' | 'connecting' | 'connected'
+let connMode  = 'ble';          // 'ble' | 'usb'
+
+// BLE関連
+let bleDevice    = null;
+let bleServer    = null;
+let keymapChar   = null;
+let configChar   = null;
+let battChar     = null;
+
+// USB Serial関連
+let usbPort      = null;
+let usbReader    = null;
+let usbWriter    = null;
+let usbReadable  = null;
+
+// BLE UUIDs
+const BLE_SERVICE_UUID  = 'adaf0001-c332-42a8-93bd-25e905756cb8';
+const BLE_KEYMAP_UUID   = 'adaf0002-c332-42a8-93bd-25e905756cb8';
+const BLE_CONFIG_UUID   = 'adaf0003-c332-42a8-93bd-25e905756cb8';
+const BLE_BATTERY_SVC   = 0x180f;
+const BLE_BATTERY_CHAR  = 0x2a19;
+
+// ===================================================
+// 4. デフォルト設定値
+// ===================================================
+function getDefaultConfig() {
+  return {
+    version:         3,
+    stick_center_x:  512,
+    stick_center_y:  512,
+    stick_deadzone:  75,
+    stick_range_x:   511,
+    stick_range_y:   511,
+    stick_ema_alpha: 0.4,
+    mouse_max_speed: 0.8,
+    scroll_max_speed:0.06,
+    sleep_timeout_ms:300000,
+    led_brightness:  25,
+    blink_interval_ms:600,
+    scroll_invert:   0,
+    magic:           0x504F5441,
+  };
+}
+
+// ===================================================
+// 5. 初期化
+// ===================================================
+window.addEventListener('DOMContentLoaded', () => {
+  buildKeyboard();
+  renderKeyboard();
+  buildPalette('special');
+  syncConfigToForm();
+  addLog('info', 'PotaKB Configurator v2.0 起動完了');
+});
+
+// ===================================================
+// 6. キーボードビジュアル描画
+// ===================================================
+function buildKeyboard() {
+  const wrap = document.getElementById('keyboardWrap');
+  wrap.innerHTML = '';
+
+  for (const rowDef of KEY_ROWS) {
+    const rowEl = document.createElement('div');
+    rowEl.className = 'key-row' + (rowDef.cls ? ' ' + rowDef.cls : '');
+
+    for (const kd of rowDef.keys) {
+      // スペーサー
+      if (kd.gap) {
+        const spacer = document.createElement('div');
+        spacer.className = 'key-spacer';
+        spacer.style.width = Math.round(kd.u * UNIT + (kd.u - 1) * GAP) + 'px';
+        rowEl.appendChild(spacer);
+        continue;
+      }
+
+      const keyEl = document.createElement('div');
+      const pxW = Math.round(kd.u * UNIT + (kd.u - 1) * GAP);
+      keyEl.className = 'key';
+      keyEl.style.width = pxW + 'px';
+      keyEl.dataset.idx = kd.idx;
+      if (kd.label) keyEl.dataset.fixedLabel = kd.label;
+
+      // クリックイベント
+      keyEl.addEventListener('click', (e) => {
+        onKeyClick(kd.idx, e.shiftKey || e.ctrlKey);
+      });
+
+      // メインラベルspan
+      const mainSpan = document.createElement('span');
+      mainSpan.className = 'key-main';
+      mainSpan.id = `key-main-${kd.idx}`;
+      keyEl.appendChild(mainSpan);
+
+      // サブラベルspan (キーコード名)
+      const subSpan = document.createElement('span');
+      subSpan.className = 'key-sub';
+      subSpan.id = `key-sub-${kd.idx}`;
+      keyEl.appendChild(subSpan);
+      rowEl.appendChild(keyEl);
     }
-    
-    document.querySelectorAll('.main-tab-button').forEach(button => {
-        button.addEventListener('click', () => {
-            const targetTab = button.dataset.tab;
-            document.querySelectorAll('.main-tab-button').forEach(btn => btn.classList.remove('active'));
-            document.querySelectorAll('.main-tab-content').forEach(content => content.classList.remove('active'));
-            button.classList.add('active');
-            document.getElementById(`${targetTab}-tab`).classList.add('active');
-        });
+    wrap.appendChild(rowEl);
+  }
+}
+
+// キーボードのキー表示を更新
+function renderKeyboard() {
+  for (const rowDef of KEY_ROWS) {
+    for (const kd of rowDef.keys) {
+      if (kd.gap) continue;
+      const idx   = kd.idx;
+      const kcode = keymapData[currentLayer][idx];
+      const keyEl = document.querySelector(`.key[data-idx="${idx}"]`);
+      if (!keyEl) continue;
+
+      const mainSpan = document.getElementById(`key-main-${idx}`);
+      const subSpan  = document.getElementById(`key-sub-${idx}`);
+
+      // fixedLabel が設定されていれば常にそれを表示
+      if (kd.label) {
+        mainSpan.textContent = kd.label;
+        subSpan.textContent  = kcLabel(kcode);
+      } else {
+        mainSpan.textContent = kcLabel(kcode);
+        subSpan.textContent  = '';
+      }
+
+      // クラス
+      keyEl.classList.remove('key-no', 'key-trns', 'selected');
+      if (kcode === 0x0000) keyEl.classList.add('key-no');
+      if (kcode === 0xFFFF) keyEl.classList.add('key-trns');
+      if (selectedKeys.includes(idx)) keyEl.classList.add('selected');
+    }
+  }
+  updateSelectionBar();
+}
+
+// ===================================================
+// 7. キー選択
+// ===================================================
+function onKeyClick(idx, multi) {
+  if (multi) {
+    // 複数選択トグル
+    const pos = selectedKeys.indexOf(idx);
+    if (pos >= 0) {
+      selectedKeys.splice(pos, 1);
+    } else {
+      selectedKeys.push(idx);
+    }
+  } else {
+    if (selectedKeys.length === 1 && selectedKeys[0] === idx) {
+      // 同じキーを再クリックで解除
+      selectedKeys = [];
+    } else {
+      selectedKeys = [idx];
+    }
+  }
+  renderKeyboard();
+}
+
+function updateSelectionBar() {
+  const el = document.getElementById('selectionInfo');
+
+  if (captureMode) {
+    el.className = 'selection-capture';
+    el.innerHTML = '⌨&nbsp; キーを押して割り当て &nbsp;<span class="capture-hint">（Esc でキャンセル）</span>';
+    return;
+  }
+
+  if (selectedKeys.length === 0) {
+    el.className = 'selection-hint';
+    el.textContent = 'キーをクリックして選択し、パレットか直接キー入力で割り当てます（Shift/Ctrlクリックで複数選択）';
+  } else if (selectedKeys.length === 1) {
+    const idx   = selectedKeys[0];
+    const kcode = keymapData[currentLayer][idx];
+    el.className = 'selection-active';
+    el.innerHTML =
+      `選択: Key[${idx}]&ensp;現在 = ${kcName(kcode)} (0x${kcode.toString(16).toUpperCase().padStart(4,'0')})` +
+      `&emsp;<button class="btn-capture" onclick="startCapture()">⌨ キー入力</button>`;
+  } else {
+    el.className = 'selection-active';
+    el.innerHTML =
+      `${selectedKeys.length} 個のキーを選択中` +
+      `&emsp;<button class="btn-capture" onclick="startCapture()">⌨ キー入力</button>`;
+  }
+}
+
+function startCapture() {
+  if (selectedKeys.length === 0) return;
+  captureMode = true;
+  updateSelectionBar();
+}
+
+function stopCapture() {
+  captureMode = false;
+  updateSelectionBar();
+}
+
+// ===================================================
+// 8. キーコードパレット
+// ===================================================
+const PALETTE_CATEGORIES = [
+  'special','letters','numbers','fn','mods','edit','nav','symbols','mouse','jp'
+];
+
+function switchPaletteTab(cat) {
+  currentPaletteCat = cat;
+  // タブボタンのアクティブ状態
+  document.querySelectorAll('.palette-tab').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.cat === cat);
+  });
+  buildPalette(cat);
+}
+
+function buildPalette(cat) {
+  const container = document.getElementById('paletteKeys');
+  container.innerHTML = '';
+
+  for (const [value, info] of KC_MAP.entries()) {
+    if (info.category !== cat) continue;
+    const btn = document.createElement('button');
+    btn.className = 'palette-key';
+    btn.textContent = info.label;
+    btn.title = `${info.name}  (0x${value.toString(16).toUpperCase().padStart(4,'0')})`;
+    btn.addEventListener('click', () => assignKeycode(value));
+    container.appendChild(btn);
+  }
+}
+
+// 選択中のキーにキーコードを割り当て
+function assignKeycode(value) {
+  if (selectedKeys.length === 0) {
+    addLog('warn', 'キーが選択されていません');
+    return;
+  }
+  for (const idx of selectedKeys) {
+    keymapData[currentLayer][idx] = value;
+  }
+  renderKeyboard();
+  addLog('info', `[L${currentLayer}] Key[${selectedKeys.join(',')}] ← ${kcName(value)}`);
+}
+
+// ===================================================
+// 9. レイヤー切替
+// ===================================================
+function switchLayer(layer) {
+  currentLayer = layer;
+  document.getElementById('tabLayer0').classList.toggle('active', layer === 0);
+  document.getElementById('tabLayer1').classList.toggle('active', layer === 1);
+  selectedKeys = [];
+  renderKeyboard();
+}
+
+function copyLayerTo(src, dst) {
+  keymapData[dst] = new Uint16Array(keymapData[src]);
+  addLog('info', `Layer ${src} → Layer ${dst} にコピーしました`);
+  renderKeyboard();
+}
+
+// ===================================================
+// 10. 右パネルタブ切替
+// ===================================================
+function switchRightTab(tab) {
+  document.getElementById('rightTabConn').classList.toggle('active',   tab === 'conn');
+  document.getElementById('rightTabConfig').classList.toggle('active', tab === 'config');
+  document.getElementById('connPanel').style.display   = tab === 'conn'   ? '' : 'none';
+  document.getElementById('configPanel').style.display = tab === 'config' ? '' : 'none';
+}
+
+// ===================================================
+// 11. 接続モード切替
+// ===================================================
+function onConnModeChange() {
+  connMode = document.querySelector('input[name="connMode"]:checked').value;
+  document.getElementById('bleConnArea').style.display = connMode === 'ble' ? '' : 'none';
+  document.getElementById('usbConnArea').style.display = connMode === 'usb' ? '' : 'none';
+}
+
+// ===================================================
+// 12. BLE 接続 / 切断
+// ===================================================
+async function connectBLE() {
+  if (!navigator.bluetooth) {
+    addLog('error', 'Web Bluetooth API に対応していません（Chrome/Edge を使用してください）');
+    return;
+  }
+  try {
+    setConnState('connecting');
+    addLog('info', 'Bluetooth デバイスをスキャン中...');
+
+    bleDevice = await navigator.bluetooth.requestDevice({
+      filters: [{ namePrefix: 'PotaKB' }],
+      optionalServices: [BLE_SERVICE_UUID, BLE_BATTERY_SVC],
     });
-    
-    function startBatteryMonitoring() {
-        if (batteryCheckInterval) clearInterval(batteryCheckInterval);
-        getBatteryLevel();
-        batteryCheckInterval = setInterval(() => {
-            if (connectionType === 'bluetooth' || connectionType === 'usb') getBatteryLevel();
-        }, 30000);
+
+    bleDevice.addEventListener('gattserverdisconnected', onBLEDisconnected);
+
+    addLog('info', `デバイス発見: ${bleDevice.name}`);
+    bleServer = await bleDevice.gatt.connect();
+
+    // PotaKBサービス取得
+    const svc = await bleServer.getPrimaryService(BLE_SERVICE_UUID);
+    keymapChar = await svc.getCharacteristic(BLE_KEYMAP_UUID);
+    configChar = await svc.getCharacteristic(BLE_CONFIG_UUID);
+
+    // バッテリーサービス (オプション)
+    try {
+      const battSvc = await bleServer.getPrimaryService(BLE_BATTERY_SVC);
+      battChar = await battSvc.getCharacteristic(BLE_BATTERY_CHAR);
+    } catch (_) {
+      battChar = null;
     }
-    
-    function stopBatteryMonitoring() {
-        if (batteryCheckInterval) {
-            clearInterval(batteryCheckInterval);
-            batteryCheckInterval = null;
-        }
-    }
-    
-    async function getBatteryLevel() {
-        if (!serialPort && !batteryCharacteristic) return;
-        
-        try {
-            if (connectionType === 'bluetooth') {
-                if (batteryCharacteristic) {
-                    const batteryValue = await batteryCharacteristic.readValue();
-                    const batteryLevel = batteryValue.getUint8(0);
-                    batteryInfo.textContent = `🔋 Battery: ${batteryLevel}%`;
-                }
-            } else if (connectionType === 'usb' && serialPort && serialPort.writable) {
-                const writer = serialPort.writable.getWriter();
-                const encoder = new TextEncoder();
-                await writer.write(encoder.encode('GET_BATTERY\n'));
-                writer.releaseLock();
-                
-                const reader = serialPort.readable.getReader();
-                const decoder = new TextDecoder();
-                let response = '';
-                const timeout = setTimeout(() => {
-                    try { reader.cancel(); } catch(e) {}
-                }, 2000);
-                
-                try {
-                    while (true) {
-                        const { value, done } = await reader.read();
-                        if (done) break;
-                        response += decoder.decode(value, { stream: true });
-                        if (response.includes('\n')) {
-                            clearTimeout(timeout);
-                            break;
-                        }
-                    }
-                } catch (e) {
-                    addDebugLog('バッテリー読み取りタイムアウトまたはキャンセル');
-                } finally {
-                    try{ reader.releaseLock(); } catch(e){}
-                }
-                
-                const match = response.match(/BATTERY:(\d+)/);
-                if (match) {
-                    const batteryLevel = parseInt(match[1]);
-                    batteryInfo.textContent = `🔋 Battery: ${batteryLevel}%`;
-                }
-            }
-        } catch (error) {
-            addDebugLog('バッテリー取得エラー: ' + error.message);
-        }
-    }
-    
-    document.querySelectorAll('.connection-tab').forEach(tab => {
-        tab.addEventListener('click', () => {
-            const type = tab.dataset.type;
-            document.querySelectorAll('.connection-tab').forEach(t => t.classList.remove('active'));
-            tab.classList.add('active');
-            
-            if (type === 'bluetooth') {
-                document.getElementById('bluetooth-section').style.display = 'block';
-                document.getElementById('usb-section').style.display = 'none';
-                document.getElementById('bt-help-text').style.display = 'block';
-                document.getElementById('usb-help-text').style.display = 'none';
-            } else {
-                document.getElementById('bluetooth-section').style.display = 'none';
-                document.getElementById('usb-section').style.display = 'block';
-                document.getElementById('bt-help-text').style.display = 'none';
-                document.getElementById('usb-help-text').style.display = 'block';
-            }
-        });
+
+    setConnState('connected');
+    addLog('ok', 'Bluetooth 接続完了');
+    getBattery();
+  } catch (err) {
+    setConnState('disconnected');
+    addLog('error', `BLE接続エラー: ${err.message}`);
+  }
+}
+
+function onBLEDisconnected() {
+  addLog('warn', 'Bluetooth 接続が切断されました');
+  setConnState('disconnected');
+  bleServer   = null;
+  keymapChar  = null;
+  configChar  = null;
+  battChar    = null;
+}
+
+function onUSBDisconnected(event) {
+  if (event.target === usbPort || connMode === 'usb') {
+    navigator.serial.removeEventListener('disconnect', onUSBDisconnected);
+    usbReadable = null;
+    usbWriter   = null;
+    usbPort     = null;
+    setConnState('disconnected');
+    addLog('warn', 'USB接続が切断されました');
+  }
+}
+
+// ===================================================
+// 13. USB Serial 接続 / 切断
+// ===================================================
+async function connectUSB() {
+  if (!navigator.serial) {
+    addLog('error', 'Web Serial API に対応していません（Chrome/Edge を使用してください）');
+    return;
+  }
+  try {
+    setConnState('connecting');
+    addLog('info', 'USB シリアルポートを選択中...');
+
+    usbPort = await navigator.serial.requestPort({
+      filters: [{ usbVendorId: 0x239A, usbProductId: 0x8029 }],
     });
-    
-    function getDisplayKeycode(keycode) {
-        const useJisLayout = jisLayoutToggle.checked;
-        if (useJisLayout && JIS_KEY_MAP[keycode]) return JIS_KEY_MAP[keycode];
-        if (KEYCODE_DISPLAY_MAP[keycode]) return KEYCODE_DISPLAY_MAP[keycode];
-        if (keycode.startsWith('HID_KEY_')) {
-            const key = keycode.replace('HID_KEY_', '');
-            if (key.startsWith('F') && !isNaN(key.substring(1))) return key;
-            return key.length === 1 ? key : key.charAt(0).toUpperCase();
-        }
-        return keycode;
+    await usbPort.open({ baudRate: 115200 });
+
+    usbReadable = usbPort.readable;
+    usbWriter   = usbPort.writable.getWriter();
+
+    navigator.serial.addEventListener('disconnect', onUSBDisconnected);
+
+    setConnState('connected');
+    addLog('ok', 'USB Serial 接続完了');
+    getBattery();
+  } catch (err) {
+    setConnState('disconnected');
+    addLog('error', `USB接続エラー: ${err.message}`);
+  }
+}
+
+// ===================================================
+// 14. 汎用切断
+// ===================================================
+async function disconnect() {
+  if (connMode === 'ble') {
+    if (bleDevice && bleDevice.gatt.connected) {
+      bleDevice.gatt.disconnect();
     }
-    
-    function renderKeyboard() {
-        const physicalLayoutJSON = [ [{"w":1.5},"sw1",{"x":12,"w":1.5},"sw62"], ["sw2","sw5","sw9","sw13","sw17","sw21","sw25","sw30","sw35","sw40","sw45","sw50","sw55","sw59","sw63"], [{"w":1.5},"sw3","sw6","sw10","sw14","sw18","sw22","sw26","sw31","sw36","sw41","sw46","sw51","sw56",{"w":1.5},"sw60"], [{"w":1.75},"sw4","sw7","sw11","sw15","sw19","sw23","sw27","sw32","sw37","sw42","sw47","sw52","sw57",{"w":1.25},"sw61"], [{"x":2.1},"sw8","sw12","sw16","sw20","sw24","sw28","sw33","sw38","sw43","sw48","sw53",{"w":1.5},"sw58"], [{"y":-0.5},"D10","D6"], [{"y":-0.5,"x":6.25,"w":2.5},"sw29","sw34","sw39","sw44","sw49","sw54"] ];
-        keyboardContainer.innerHTML = '';
-        const baseKeySize = 42; const baseGap = 5;
-        physicalLayoutJSON.forEach(rowItems => {
-            const row = document.createElement('div'); row.className = 'key-row';
-            let currentProps = { w: 1, x: 0, y: 0 };
-            rowItems.forEach(item => {
-                if (typeof item === 'object' && item !== null) {
-                    Object.assign(currentProps, item);
-                    if (currentProps.y !== 0) row.style.marginTop = `${currentProps.y * (baseKeySize + baseGap)}px`;
-                } else if (typeof item === 'string') {
-                    const keyName = item;
-                    const keyIndex = physical_layout_order_name.indexOf(keyName);
-                    if (keyIndex === -1) return;
-                    const keycode = keymapData[currentLayer][keyIndex];
-                    const keyEl = document.createElement('div'); keyEl.className = 'key'; keyEl.dataset.index = keyIndex;
-                    if (selectedKeyIndices.has(keyIndex)) keyEl.classList.add('selected');
-                    const codeEl = document.createElement('div'); codeEl.className = 'key-code';
-                    if (isWaitingForKeypress && keyIndex === targetKeyIndexForCapture) {
-                        keyEl.classList.add('waiting-capture');
-                        codeEl.textContent = 'PRESS KEY';
-                    } else {
-                        codeEl.textContent = getDisplayKeycode(keycode);
-                    }
-                    keyEl.style.width = `${baseKeySize * currentProps.w + baseGap * (currentProps.w - 1)}px`;
-                    if (currentProps.x > 0) keyEl.style.marginLeft = `${currentProps.x * (baseKeySize + baseGap)}px`;
-                    const nameEl = document.createElement('div'); nameEl.className = 'key-name'; nameEl.textContent = keyName;
-                    keyEl.appendChild(nameEl); keyEl.appendChild(codeEl);
-                    keyEl.addEventListener('click', (e) => { const idx = parseInt(e.currentTarget.dataset.index); if (e.ctrlKey || e.metaKey) { selectedKeyIndices.has(idx) ? selectedKeyIndices.delete(idx) : selectedKeyIndices.add(idx); } else { selectedKeyIndices.clear(); selectedKeyIndices.add(idx); } renderKeyboard(); });
-                    keyEl.addEventListener('dblclick', (e) => { const idx = parseInt(e.currentTarget.dataset.index); isWaitingForKeypress = true; targetKeyIndexForCapture = idx; renderKeyboard(); });
-                    row.appendChild(keyEl);
-                    currentProps = { w: 1, x: 0, y: currentProps.y };
-                }
-            });
-            keyboardContainer.appendChild(row);
-        });
+    bleDevice   = null;
+    bleServer   = null;
+    keymapChar  = null;
+    configChar  = null;
+    battChar    = null;
+  } else {
+    try {
+      if (usbReader) { await usbReader.cancel(); usbReader = null; }
+      if (usbWriter) { usbWriter.releaseLock(); usbWriter = null; }
+      if (usbPort)   { await usbPort.close(); usbPort = null; }
+    } catch (err) {
+      addLog('warn', `切断中にエラー: ${err.message}`);
     }
+    usbReadable = null;
+  }
+  setConnState('disconnected');
+  addLog('info', '切断しました');
+}
 
-    function renderPalette() {
-        tabButtonsContainer.innerHTML = ''; tabContentContainer.innerHTML = '';
-        Object.keys(KEYCODES).forEach((category, idx) => {
-            const btn = document.createElement('button'); btn.className = 'tab-button'; btn.textContent = category;
-            if (idx === 0) { btn.classList.add('active'); paletteDescription.textContent = CATEGORY_DESCRIPTIONS[category]; }
-            btn.addEventListener('click', () => { document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active')); document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active')); btn.classList.add('active'); document.getElementById(`tab-${idx}`).classList.add('active'); paletteDescription.textContent = CATEGORY_DESCRIPTIONS[category]; });
-            tabButtonsContainer.appendChild(btn);
-            const content = document.createElement('div'); content.className = 'tab-content'; content.id = `tab-${idx}`;
-            if (idx === 0) content.classList.add('active');
-            const keysContainer = document.createElement('div'); keysContainer.className = 'palette-keys';
-            KEYCODES[category].forEach(keycode => {
-                const keyBtn = document.createElement('button'); keyBtn.className = 'palette-key'; keyBtn.textContent = getDisplayKeycode(keycode); keyBtn.title = keycode;
-                keyBtn.addEventListener('mouseenter', () => { keyDescription.innerHTML = KEYCODE_DESCRIPTIONS[keycode] || '&nbsp;'; });
-                keyBtn.addEventListener('mouseleave', () => { keyDescription.innerHTML = '&nbsp;'; });
-                keyBtn.addEventListener('click', () => { if (selectedKeyIndices.size === 0) { alert('Please select at least one key on the layout first!'); return; } selectedKeyIndices.forEach(idx => { keymapData[currentLayer][idx] = keycode; }); renderKeyboard(); });
-                keysContainer.appendChild(keyBtn);
-            });
-            content.appendChild(keysContainer);
-            tabContentContainer.appendChild(content);
-        });
+// ===================================================
+// 15. 接続状態 UI 更新
+// ===================================================
+function setConnState(state) {
+  connState = state;
+  const dot   = document.getElementById('connDot');
+  const label = document.getElementById('connLabel');
+  const btnDisconnect  = document.getElementById('btnDisconnect');
+  const btnBLEConnect  = document.getElementById('btnBLEConnect');
+  const btnUSBConnect  = document.getElementById('btnUSBConnect');
+  const actionBtns = ['btnLoad','btnSave','btnCalibrate','btnGetBattery'];
+
+  dot.className = 'conn-dot';
+  if (state === 'connected') {
+    dot.classList.add('connected');
+    label.textContent = '接続済み';
+    btnDisconnect.style.display = '';
+    if (connMode === 'ble') { btnBLEConnect.style.display = 'none'; }
+    else                    { btnUSBConnect.style.display = 'none'; }
+    actionBtns.forEach(id => document.getElementById(id).disabled = false);
+  } else if (state === 'connecting') {
+    dot.classList.add('connecting');
+    label.textContent = '接続中...';
+    btnDisconnect.style.display = 'none';
+    actionBtns.forEach(id => document.getElementById(id).disabled = true);
+  } else {
+    dot.classList.add('disconnected');
+    label.textContent = '未接続';
+    btnDisconnect.style.display = 'none';
+    btnBLEConnect.style.display = '';
+    btnUSBConnect.style.display = '';
+    actionBtns.forEach(id => document.getElementById(id).disabled = true);
+  }
+}
+
+// ===================================================
+// 16. デバイスから読み込み
+// ===================================================
+async function loadFromDevice() {
+  if (connState !== 'connected') { addLog('warn', '接続されていません'); return; }
+  try {
+    addLog('info', 'デバイスから読み込み中...');
+    if (connMode === 'ble') {
+      await bleLoadKeymap();
+      await bleLoadConfig();
+    } else {
+      await usbLoadKeymap();
+      await usbLoadConfig();
     }
+    addLog('ok', '読み込み完了');
+  } catch (err) {
+    addLog('error', `読み込みエラー: ${err.message}`);
+  }
+}
 
-    function handleKeyCapture(e) {
-        if (!isWaitingForKeypress) return;
-        e.preventDefault();
-        if (e.code === 'Escape') { isWaitingForKeypress = false; targetKeyIndexForCapture = null; renderKeyboard(); return; }
-        const mappedKeycode = EVENT_CODE_TO_KEYCODE_MAP[e.code];
-        if (mappedKeycode) { keymapData[currentLayer][targetKeyIndexForCapture] = mappedKeycode; } 
-        else { console.warn(`Unsupported key captured: ${e.code}`); alert(`このキー (${e.code}) はサポートされていません。`); }
-        isWaitingForKeypress = false; targetKeyIndexForCapture = null; renderKeyboard();
+// ===================================================
+// 17. デバイスへ保存
+// ===================================================
+async function saveToDevice() {
+  if (connState !== 'connected') { addLog('warn', '接続されていません'); return; }
+  try {
+    addLog('info', 'デバイスへ保存中...');
+    if (connMode === 'ble') {
+      await bleSaveKeymap();
+      await bleSaveConfig();
+    } else {
+      await usbSaveKeymap();
+      await usbSaveConfig();
     }
-    
-    function generateFile() {
-        const settings = {
-            MOUSE_HIGH_SPEED: document.getElementById('MOUSE_HIGH_SPEED').value,
-            MOUSE_LOW_SPEED: document.getElementById('MOUSE_LOW_SPEED').value,
-            MOUSE_ACCEL_THRESHOLD: document.getElementById('MOUSE_ACCEL_THRESHOLD').value,
-            STICK_CENTER_X: document.getElementById('STICK_CENTER_X').value,
-            STICK_CENTER_Y: document.getElementById('STICK_CENTER_Y').value,
-            STICK_DEADZONE: document.getElementById('STICK_DEADZONE').value,
-            SMOOTHING_SAMPLES: document.getElementById('SMOOTHING_SAMPLES').value,
-            SCROLL_MIN_THRESHOLD: document.getElementById('SCROLL_MIN_THRESHOLD').value,
-            SCROLL_MAX_THRESHOLD: document.getElementById('SCROLL_MAX_THRESHOLD').value,
-            SCROLL_MIN_SPEED: document.getElementById('SCROLL_MIN_SPEED').value,
-            SCROLL_MAX_SPEED: document.getElementById('SCROLL_MAX_SPEED').value,
-            SCROLL_INTERVAL_MS: document.getElementById('SCROLL_INTERVAL_MS').value,
-            MOUSE_HIGH_SPEED_BT: document.getElementById('MOUSE_HIGH_SPEED_BT').value,
-            SCROLL_MIN_SPEED_BT: document.getElementById('SCROLL_MIN_SPEED_BT').value,
-            SCROLL_MAX_SPEED_BT: document.getElementById('SCROLL_MAX_SPEED_BT').value,
-            SLEEP_TIMEOUT: document.getElementById('SLEEP_TIMEOUT').value,
-            LED_BRIGHTNESS: document.getElementById('LED_BRIGHTNESS').value,
-            BLINK_INTERVAL_MS: document.getElementById('BLINK_INTERVAL_MS').value
-        };
-        
-        let fileContent = `// =========================================================================
-// ★★★ あなたが編集するのは、このファイルだけ! ★★★
-// =========================================================================
+    addLog('ok', '保存完了');
+  } catch (err) {
+    addLog('error', `保存エラー: ${err.message}`);
+  }
+}
 
-#include <Adafruit_TinyUSB.h>
+// ===================================================
+// 18. キャリブレーション
+// ===================================================
 
-// --- アナログスティック設定 (USB用) ---
-#define STICK_CENTER_X       ${settings.STICK_CENTER_X}
-#define STICK_CENTER_Y       ${settings.STICK_CENTER_Y}
-#define STICK_DEADZONE       ${settings.STICK_DEADZONE}
-#define MOUSE_HIGH_SPEED     ${settings.MOUSE_HIGH_SPEED}f // ★ 最高速度
-#define MOUSE_LOW_SPEED      ${settings.MOUSE_LOW_SPEED}f  // ★ 低速ゾーンの最高速度
-#define SMOOTHING_SAMPLES    ${settings.SMOOTHING_SAMPLES}
-#define MOUSE_ACCEL_THRESHOLD ${settings.MOUSE_ACCEL_THRESHOLD} // ★ 低速ゾーンが終わる傾き
+// キャリブレーション状態
+let calibRunning = false;
+let calibCenterX = 512, calibCenterY = 512;
+let calibMinX = 512, calibMaxX = 512;
+let calibMinY = 512, calibMaxY = 512;
+let calibAnimId = null;
 
-// --- スクロール設定 (USB用) ---
-#define SCROLL_MIN_THRESHOLD ${settings.SCROLL_MIN_THRESHOLD}
-#define SCROLL_MAX_THRESHOLD ${settings.SCROLL_MAX_THRESHOLD}
-#define SCROLL_MIN_SPEED ${settings.SCROLL_MIN_SPEED}f
-#define SCROLL_MAX_SPEED ${settings.SCROLL_MAX_SPEED}f
-#define SCROLL_INTERVAL_MS ${settings.SCROLL_INTERVAL_MS}
+function calibrateDevice() {
+  if (connState !== 'connected') { addLog('warn', '接続されていません'); return; }
 
-// --- Bluetooth専用設定 ---
-#define MOUSE_HIGH_SPEED_BT  ${settings.MOUSE_HIGH_SPEED_BT}f  // ★ Bluetooth時のマウス最高速度
-#define SCROLL_MIN_SPEED_BT  ${settings.SCROLL_MIN_SPEED_BT}f  // ★ Bluetooth時のスクロール最小速度
-#define SCROLL_MAX_SPEED_BT  ${settings.SCROLL_MAX_SPEED_BT}f   // ★ Bluetooth時のスクロール最大速度
+  // フェーズリセット
+  document.getElementById('calibPhase1').style.display = '';
+  document.getElementById('calibPhase2').style.display = 'none';
+  document.getElementById('calibPhase3').style.display = 'none';
+  document.getElementById('calibBLEMsg').style.display = 'none';
 
-// --- 電源管理設定 ---
-#define SLEEP_TIMEOUT ${settings.SLEEP_TIMEOUT}UL // スリープまでの時間(ms)
-#define LED_BRIGHTNESS ${settings.LED_BRIGHTNESS}
-#define BLINK_INTERVAL_MS ${settings.BLINK_INTERVAL_MS}
+  if (connMode === 'ble') {
+    document.getElementById('calibPhase1').style.display = 'none';
+    document.getElementById('calibBLEMsg').style.display = '';
+  }
 
-// --- キーマトリクス設定 ---
-#define ROWS 8
-#define COLS 8
-#define LAYOUT_KEY_COUNT 65
+  document.getElementById('calibModal').style.display = '';
+}
 
-// --- カスタムキーコード定義 ---
-#define KC_MS_UP         0x201
-#define KC_MS_DOWN       0x202
-#define KC_MS_LEFT       0x203
-#define KC_MS_RIGHT      0x204
-#define KC_MS_BTN1       0x205 // 左クリック
-#define KC_MS_BTN2       0x206 // 右クリック
-#define KC_MS_BTN3       0x207 // 中クリック
-#define KC_MS_BTN4       0x208 // 戻る
-#define KC_MS_BTN5       0x209 // 進む
-#define MOUSE_MOVE_SPEED 8
-#define KC_NO            0x000
-#define SW_USB_BT        0x401
+async function calibRecordCenter() {
+  try {
+    await usbSendCommand('CALIB_START');
+    await usbReadLine(1000);  // "OK"
+    await usbSendCommand('READ_STICK');
+    const line = await usbReadLine(3000);
+    const m = line.match(/STICK:(\d+),(\d+)/);
+    if (!m) throw new Error(`応答パースエラー: ${line}`);
+    calibCenterX = parseInt(m[1]);
+    calibCenterY = parseInt(m[2]);
+    calibMinX = calibCenterX; calibMaxX = calibCenterX;
+    calibMinY = calibCenterY; calibMaxY = calibCenterY;
 
-#define KC_RESET_KM      0x501
-#define KC_REBOOT_DEF    0x502
+    document.getElementById('calibPhase1').style.display = 'none';
+    document.getElementById('calibPhase2').style.display = '';
+    calibRunning = true;
+    calibLoop();
+    addLog('info', `センター記録: X=${calibCenterX}, Y=${calibCenterY}`);
+  } catch (err) {
+    addLog('error', `センター記録エラー: ${err.message}`);
+  }
+}
 
-// JP Keyboard specific keycodes
-#ifndef HID_KEY_INTERNATIONAL1
-  #define HID_KEY_INTERNATIONAL1 0x87
-#endif
-#ifndef HID_KEY_INTERNATIONAL3
-  #define HID_KEY_INTERNATIONAL3 0x89
-#endif
-#ifndef HID_KEY_LANG1
-  #define HID_KEY_LANG1 0x90
-#endif
-#ifndef HID_KEY_LANG2
-  #define HID_KEY_LANG2 0x91
-#endif
-
-// レイヤー機能用
-#define NUM_LAYERS 2
-#define L_LOWER    0x301
-#define KC_TRNS    0x000
-
-
-// --- キーマップレイアウト定義 ---
-const uint16_t layout[NUM_LAYERS][LAYOUT_KEY_COUNT] = {
-`;
-        const keymapInValues = keymapData.map(layer => {
-            return layer.map(kc => KEYCODE_TO_VALUE_MAP[kc] !== undefined ? `0x${KEYCODE_TO_VALUE_MAP[kc].toString(16).toUpperCase()}`: "0x000");
-        });
-
-        keymapInValues.forEach((layer, layerIndex) => {
-            fileContent += `  // [${layerIndex}] = ${layerIndex === 0 ? 'Default Layer' : 'Lower Layer (Fnキーを押している間)'}\n  {\n`;
-            let keyIdx = 0;
-            const createRow = (count, comment) => {
-                fileContent += `    // ${comment}\n    `;
-                fileContent += layer.slice(keyIdx, keyIdx + count).join(', ') + ',\n';
-                keyIdx += count;
-            };
-            const row_counts = { '1段目': 2, '2段目': 15, '3段目': 14, '4段目': 14, '5段目': 12, '6段目': 6, '直接接続キー': 2 };
-            for(const [comment, count] of Object.entries(row_counts)) {
-                createRow(count, comment);
-            }
-            fileContent = fileContent.slice(0, -2) + '\n'; // 最後のカンマを削除
-            fileContent += '  }';
-            fileContent += (layerIndex < keymapInValues.length - 1) ? ',\n\n' : '\n';
-        });
-        fileContent += `};\n`;
-        const blob = new Blob([fileContent], { type: 'text/plain' });
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = 'keymap.h';
-        a.click();
-        URL.revokeObjectURL(a.href);
+async function calibLoop() {
+  if (!calibRunning) return;
+  try {
+    await usbSendCommand('READ_STICK');
+    const line = await usbReadLine(1000);
+    const m = line.match(/STICK:(\d+),(\d+)/);
+    if (m) {
+      const x = parseInt(m[1]);
+      const y = parseInt(m[2]);
+      if (x < calibMinX) calibMinX = x;
+      if (x > calibMaxX) calibMaxX = x;
+      if (y < calibMinY) calibMinY = y;
+      if (y > calibMaxY) calibMaxY = y;
+      calibDrawCanvas(x, y);
+      document.getElementById('calibInfo').textContent =
+        `X: ${x}  (${calibMinX}～${calibMaxX})   Y: ${y}  (${calibMinY}～${calibMaxY})`;
     }
-    
-    function parseKeymapH(content) { 
-        try { 
-            const patterns = {
-                MOUSE_HIGH_SPEED: /#define\s+MOUSE_HIGH_SPEED\s+([\d.]+)f?/,
-                MOUSE_LOW_SPEED: /#define\s+MOUSE_LOW_SPEED\s+([\d.]+)f?/,
-                MOUSE_ACCEL_THRESHOLD: /#define\s+MOUSE_ACCEL_THRESHOLD\s+(\d+)/,
-                STICK_CENTER_X: /#define\s+STICK_CENTER_X\s+(\d+)/,
-                STICK_CENTER_Y: /#define\s+STICK_CENTER_Y\s+(\d+)/,
-                STICK_DEADZONE: /#define\s+STICK_DEADZONE\s+(\d+)/,
-                SMOOTHING_SAMPLES: /#define\s+SMOOTHING_SAMPLES\s+(\d+)/,
-                SCROLL_MIN_THRESHOLD: /#define\s+SCROLL_MIN_THRESHOLD\s+(\d+)/,
-                SCROLL_MAX_THRESHOLD: /#define\s+SCROLL_MAX_THRESHOLD\s+(\d+)/,
-                SCROLL_MIN_SPEED: /#define\s+SCROLL_MIN_SPEED\s+([\d.]+)f?/,
-                SCROLL_MAX_SPEED: /#define\s+SCROLL_MAX_SPEED\s+([\d.]+)f?/,
-                SCROLL_INTERVAL_MS: /#define\s+SCROLL_INTERVAL_MS\s+(\d+)/,
-                MOUSE_HIGH_SPEED_BT: /#define\s+MOUSE_HIGH_SPEED_BT\s+([\d.]+)f?/,
-                SCROLL_MIN_SPEED_BT: /#define\s+SCROLL_MIN_SPEED_BT\s+([\d.]+)f?/,
-                SCROLL_MAX_SPEED_BT: /#define\s+SCROLL_MAX_SPEED_BT\s+([\d.]+)f?/,
-                SLEEP_TIMEOUT: /#define\s+SLEEP_TIMEOUT\s+(\d+)UL/,
-                LED_BRIGHTNESS: /#define\s+LED_BRIGHTNESS\s+(\d+)/,
-                BLINK_INTERVAL_MS: /#define\s+BLINK_INTERVAL_MS\s+(\d+)/
-            };
-            
-            for (const [key, pattern] of Object.entries(patterns)) {
-                const match = content.match(pattern);
-                if (match) {
-                    document.getElementById(key).value = match[1];
-                }
-            }
-            
-            const keymapMatch = content.match(/const\s+uint16_t\s+layout\[.*?\]\[.*?\]\s*=\s*{([\s\S]*?)};/); 
-            if (!keymapMatch) throw new Error("Could not find 'layout' array."); 
-            let layersContent = keymapMatch[1]; 
-            layersContent = layersContent.replace(/\/\*[\s\S]*?\*\/|\/\/.*/g, ''); 
-            const layerMatches = layersContent.match(/{[^}]+}/g); 
-            if (!layerMatches || layerMatches.length < 2) throw new Error("Could not parse layers."); 
-            
-            const newKeymapData = layerMatches.map(layerStr => { 
-                const values = layerStr.replace(/{|}/g, '').split(',').map(s => parseInt(s.trim())).filter(s => !isNaN(s));
-                if (values.length !== 65) throw new Error(`Incorrect number of keys found in a layer: ${values.length}`);
-                return values.map(val => VALUE_TO_KEYCODE_MAP[val] || 'KC_NO');
-            });
+  } catch (_) {}
+  if (calibRunning) {
+    calibAnimId = setTimeout(calibLoop, 50);
+  }
+}
 
-            keymapData = newKeymapData;
-            renderKeyboard(); 
-            alert('Keymap loaded successfully!'); 
-        } catch (error) { 
-            alert('Error parsing file: ' + error.message); 
-            console.error(error); 
-        } 
-    }
-    
-    async function connectBluetooth() { 
-        if (!navigator.bluetooth) { 
-            alert('このブラウザはWeb Bluetoothに対応していません。Chrome/Edgeをご使用ください。'); 
-            return; 
-        } 
-        try { 
-            addDebugLog('BT接続開始...'); 
-            connectionStatus.textContent = 'Status: デバイス選択中...'; 
-            const options = { 
-                acceptAllDevices: false, 
-                filters: [ { name: 'PotaKB' }, { namePrefix: 'Pota' } ], 
-                optionalServices: [ KEYMAP_SERVICE_UUID, BATTERY_SERVICE_UUID ] 
-            }; 
-            bluetoothDevice = await navigator.bluetooth.requestDevice(options); 
-            bluetoothDevice.addEventListener('gattserverdisconnected', handleDisconnect); 
-            connectionStatus.textContent = 'Status: 接続中...'; 
-            const server = await bluetoothDevice.gatt.connect(); 
-            const keymapService = await server.getPrimaryService(KEYMAP_SERVICE_UUID); 
-            keymapCharacteristic = await keymapService.getCharacteristic(KEYMAP_CHAR_UUID);
-            
-            try {
-                configCharacteristic = await keymapService.getCharacteristic(CONFIG_CHAR_UUID);
-                addDebugLog('Config特性取得成功');
-            } catch (e) {
-                addDebugLog('Config特性取得失敗 - 古いファームウェアの可能性');
-            }
-            
-            try {
-                const batteryService = await server.getPrimaryService(BATTERY_SERVICE_UUID);
-                batteryCharacteristic = await batteryService.getCharacteristic(BATTERY_CHAR_UUID);
-            } catch (e) {
-                addDebugLog('バッテリーサービス取得不可');
-            }
-            
-            connectionStatus.textContent = `Status: 接続成功! (${bluetoothDevice.name})`; 
-            connectionType = 'bluetooth';
-            updateConnectionUI(true, 'bluetooth');
-            startBatteryMonitoring();
-        } catch(error) { 
-            connectionStatus.textContent = 'Status: 接続失敗'; 
-            addDebugLog('BT接続エラー: ' + error.message);
-        } 
-    }
-    
-    async function connectUSB() {
-        if (!('serial' in navigator)) {
-            alert('このブラウザはWeb Serial APIに対応していません。Chrome/Edgeをご使用ください。');
-            return;
-        }
-        try {
-            addDebugLog('USB接続開始...');
-            connectionStatus.textContent = 'Status: ポート選択中...';
-            
-            // フィルタなしですべてのシリアルポートを表示
-            // （GitHub Pagesでも動作するように）
-            serialPort = await navigator.serial.requestPort();
+function calibDrawCanvas(x, y) {
+  const canvas = document.getElementById('calibCanvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
 
-            // デバイス情報をログに表示
-            const info = serialPort.getInfo();
-            addDebugLog(`接続デバイス: VID=0x${info.usbVendorId?.toString(16)}, PID=0x${info.usbProductId?.toString(16)}`);
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = '#1e1e2e';
+  ctx.fillRect(0, 0, W, H);
 
-            serialPort.addEventListener('disconnect', handleDisconnect);
-            
-            connectionStatus.textContent = 'Status: ポートオープン中...';
-            await serialPort.open({ baudRate: 115200 });
-            
-            await new Promise(resolve => setTimeout(resolve, 100));
-            
-            connectionStatus.textContent = 'Status: USB接続成功!';
-            connectionType = 'usb';
-            updateConnectionUI(true, 'usb');
-            addDebugLog('USB接続完了');
-            startBatteryMonitoring();
-            
-        } catch(error) {
-            let errorMsg = error.message;
-            if (errorMsg.includes("Failed to open serial port.")) {
-                errorMsg += "\n\n対処法:\n1. Arduino IDEなどのシリアルモニタを閉じる\n2. 他のアプリでポートを使用していないか確認\n3. デバイスを再接続する";
-            }
-            connectionStatus.textContent = 'Status: USB接続失敗';
-            addDebugLog('USB接続エラー: ' + errorMsg);
-        }
-    }
-    
-    async function disconnectBluetooth() {
-        if (bluetoothDevice && bluetoothDevice.gatt.connected) {
-            await bluetoothDevice.gatt.disconnect();
-            addDebugLog('Bluetooth手動切断');
-        }
-    }
-    
-    async function disconnectUSB() {
-        if (serialPort) {
-            try {
-                // イベントリスナーを削除
-                serialPort.removeEventListener('disconnect', handleDisconnect);
-                
-                // ポートが開いている場合のみ閉じる
-                if (serialPort.readable) {
-                    await serialPort.close();
-                }
-                addDebugLog('USB手動切断');
-            } catch (error) {
-                addDebugLog('USB切断時のエラー（無視可能）: ' + error.message);
-            } finally {
-                // 必ずnullに設定
-                serialPort = null;
-                handleDisconnect();
-            }
-        }
-    }
-    
-    function handleDisconnect() {
-        if (connectionType === 'usb') serialPort = null;
-        if (connectionType === 'bluetooth') bluetoothDevice = null;
-        
-        connectionStatus.textContent = 'Status: 切断されました';
-        keymapCharacteristic = null;
-        configCharacteristic = null;
-        batteryCharacteristic = null;
-        connectionType = null;
-        updateConnectionUI(false, null);
-        stopBatteryMonitoring();
-        batteryInfo.textContent = '🔋 Battery: --';
-        addDebugLog('デバイス切断完了');
-    }
-    
-    function updateConnectionUI(connected, type) {
-        if (connected) {
-            if (type === 'bluetooth') {
-                connectButton.style.display = 'none';
-                disconnectButton.style.display = 'block';
-            } else if (type === 'usb') {
-                connectUsbButton.style.display = 'none';
-                disconnectUsbButton.style.display = 'block';
-            }
-            saveToKeyboardButton.disabled = false;
-            loadFromKeyboardButton.disabled = false;
-        } else {
-            connectButton.style.display = 'block';
-            disconnectButton.style.display = 'none';
-            connectUsbButton.style.display = 'block';
-            disconnectUsbButton.style.display = 'none';
-            saveToKeyboardButton.disabled = true;
-            loadFromKeyboardButton.disabled = true;
-        }
-    }
-    
-    async function loadFromKeyboard() {
-        if (!keymapCharacteristic && !serialPort) {
-            alert('先にデバイスに接続してください!');
-            return;
-        }
-        
-        try {
-            connectionStatus.textContent = 'Status: 読み込み中...';
-            
-            // Step 1: キーマップを読み込む
-            addDebugLog('キーマップ読み込み開始...');
-            let keymapBuffer;
-            
-            if (connectionType === 'bluetooth') {
-                const dataValue = await keymapCharacteristic.readValue();
-                keymapBuffer = dataValue.buffer;
-            } else if (connectionType === 'usb') {
-                const writer = serialPort.writable.getWriter();
-                await writer.write(new TextEncoder().encode('READ_KEYMAP\n'));
-                writer.releaseLock();
-                
-                const reader = serialPort.readable.getReader();
-                const chunks = [];
-                const expectedBytes = 2 * 65 * 2;
-                let receivedBytes = 0;
-                const timeout = setTimeout(() => { try{ reader.cancel(); } catch(e){} }, 3000);
-                
-                while(receivedBytes < expectedBytes) {
-                    const { value, done } = await reader.read();
-                    if(done) break;
-                    chunks.push(value);
-                    receivedBytes += value.length;
-                }
-                clearTimeout(timeout);
-                reader.releaseLock();
-                
-                const allData = new Uint8Array(receivedBytes);
-                let offset = 0;
-                for(const chunk of chunks) {
-                    allData.set(chunk, offset);
-                    offset += chunk.length;
-                }
-                keymapBuffer = allData.buffer;
-            }
-            
-            if (keymapBuffer.byteLength < 260) {
-                throw new Error(`キーマップデータサイズが不足: ${keymapBuffer.byteLength} bytes`);
-            }
-            
-            const keymapView = new DataView(keymapBuffer);
-            const newKeymapData = [[], []];
-            for (let layer = 0; layer < 2; layer++) {
-                for (let key = 0; key < 65; key++) {
-                    const offset = (layer * 65 + key) * 2;
-                    const value = keymapView.getUint16(offset, true);
-                    newKeymapData[layer].push(VALUE_TO_KEYCODE_MAP[value] || 'KC_NO');
-                }
-            }
-            keymapData = newKeymapData;
-            renderKeyboard();
-            
-            // Step 2: 設定を読み込む
-            addDebugLog('設定読み込み開始...');
-            let configBuffer;
+  ctx.strokeStyle = '#444';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(2, 2, W - 4, H - 4);
 
-            if (connectionType === 'bluetooth') {
-                if (configCharacteristic) {
-                    const data = await configCharacteristic.readValue();
-                    configBuffer = data.buffer;
-                } else {
-                    addDebugLog('設定特性が利用不可 - スキップ');
-                }
-            } else if (connectionType === 'usb') {
-                const writer = serialPort.writable.getWriter();
-                await writer.write(new TextEncoder().encode('READ_CONFIG\n'));
-                writer.releaseLock();
-                
-                const reader = serialPort.readable.getReader();
-                const chunks = [];
-                const expectedBytes = 56;
-                let receivedBytes = 0;
-                const timeout = setTimeout(() => { try{ reader.cancel(); } catch(e){} }, 3000);
+  ctx.strokeStyle = '#555';
+  ctx.beginPath();
+  ctx.moveTo(W / 2, 0); ctx.lineTo(W / 2, H);
+  ctx.moveTo(0, H / 2); ctx.lineTo(W, H / 2);
+  ctx.stroke();
 
-                while(receivedBytes < expectedBytes) {
-                    const { value, done } = await reader.read();
-                    if(done) break;
-                    chunks.push(value);
-                    receivedBytes += value.length;
-                }
-                clearTimeout(timeout);
-                reader.releaseLock();
-                
-                const allData = new Uint8Array(receivedBytes);
-                let offset = 0;
-                for(const chunk of chunks) {
-                    allData.set(chunk, offset);
-                    offset += chunk.length;
-                }
-                configBuffer = allData.buffer;
-            }
-            
-            if(configBuffer) parseSettingsFromBytes(configBuffer);
-            
-            connectionStatus.textContent = 'Status: 読み込み完了!';
-            alert('✓ キーマップと設定の読み込みに成功しました!');
-            addDebugLog('全データ読み込み完了');
-        } catch(error) {
-            alert('読み込みに失敗しました: ' + error.message);
-            connectionStatus.textContent = 'Status: 読み込み失敗';
-            addDebugLog('読み込みエラー: ' + error.message);
-        }
+  // 記録済み範囲ボックス（Y軸反転: キャンバスY=0が上、FWはY値大=上方向）
+  const rxL = Math.round((calibMinX / 1023) * W);
+  const rxR = Math.round((calibMaxX / 1023) * W);
+  const ryT = Math.round(((1023 - calibMaxY) / 1023) * H);
+  const ryB = Math.round(((1023 - calibMinY) / 1023) * H);
+  ctx.strokeStyle = '#a6e3a1';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(rxL, ryT, rxR - rxL, ryB - ryT);
+
+  // 現在位置（Y軸反転）
+  const px = Math.round((x / 1023) * W);
+  const py = Math.round(((1023 - y) / 1023) * H);
+  ctx.fillStyle = '#89b4fa';
+  ctx.beginPath();
+  ctx.arc(px, py, 5, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function calibFinish() {
+  calibRunning = false;
+  if (calibAnimId) { clearTimeout(calibAnimId); calibAnimId = null; }
+
+  const rangeX = Math.max(calibMaxX - calibCenterX, calibCenterX - calibMinX);
+  const rangeY = Math.max(calibMaxY - calibCenterY, calibCenterY - calibMinY);
+
+  document.getElementById('calibResX').textContent  = calibCenterX;
+  document.getElementById('calibResY').textContent  = calibCenterY;
+  document.getElementById('calibResRX').textContent = rangeX;
+  document.getElementById('calibResRY').textContent = rangeY;
+
+  document.getElementById('calibPhase2').style.display = 'none';
+  document.getElementById('calibPhase3').style.display = '';
+}
+
+async function calibApply() {
+  const rangeX = Math.max(calibMaxX - calibCenterX, calibCenterX - calibMinX);
+  const rangeY = Math.max(calibMaxY - calibCenterY, calibCenterY - calibMinY);
+
+  config.stick_center_x = calibCenterX;
+  config.stick_center_y = calibCenterY;
+  config.stick_range_x  = Math.max(rangeX, 50);
+  config.stick_range_y  = Math.max(rangeY, 50);
+
+  syncConfigToForm();
+
+  try {
+    // スティック処理を再開してから設定だけ保存（キーマップは触らない）
+    await usbSendCommand('CALIB_END');
+    await usbReadLine(1000);  // "OK"
+    await usbSaveConfig();
+    addLog('ok', `キャリブレーション適用: CX=${calibCenterX}, CY=${calibCenterY}, RX=${rangeX}, RY=${rangeY}`);
+  } catch (err) {
+    addLog('error', `保存エラー: ${err.message}`);
+  }
+
+  document.getElementById('calibModal').style.display = 'none';
+}
+
+function calibCancel() {
+  calibRunning = false;
+  if (calibAnimId) { clearTimeout(calibAnimId); calibAnimId = null; }
+  document.getElementById('calibModal').style.display = 'none';
+  // スティック処理を再開（キャリブ中断時）
+  if (connState === 'connected' && connMode === 'usb') {
+    usbSendCommand('CALIB_END').catch(() => {});
+  }
+}
+
+function calibOverlayClick(event) {
+  if (event.target === document.getElementById('calibModal')) {
+    calibCancel();
+  }
+}
+
+// ===================================================
+// 19. バッテリー取得
+// ===================================================
+async function getBattery() {
+  if (connState !== 'connected') { addLog('warn', '接続されていません'); return; }
+  try {
+    let pct = null;
+    if (connMode === 'ble') {
+      if (!battChar) { addLog('warn', 'バッテリーキャラクタリスティクスが見つかりません'); return; }
+      const val = await battChar.readValue();
+      pct = val.getUint8(0);
+    } else {
+      await usbSendCommand('GET_BATTERY');
+      const line = await usbReadLine(3000);
+      const m = line.match(/BATTERY:(\d+)/);
+      if (m) pct = parseInt(m[1]);
     }
-    
-    async function saveToKeyboard() { 
-        if (!keymapCharacteristic && !serialPort) { 
-            alert('先にデバイスに接続してください!'); 
-            return; 
-        } 
-        let modeSwitchFound = false; 
-        keymapData.forEach(layer => { 
-            if (layer.includes('SW_USB_BT')) modeSwitchFound = true;
-        }); 
-        if (!modeSwitchFound) { 
-            alert("エラー: 'Mode'キー (SW_USB_BT) がキーマップに配置されていません。\nUSB/BTの切り替えができなくなるため、書き込みを中止します。"); 
-            return; 
-        } 
-        if (!keymapData.flat().some(k => k === 'KC_RESET_KM' || k === 'KC_REBOOT_DEF')) { 
-            if (!confirm("警告:\nキーマップをリセットする手段がありません。このまま書き込みますか?")) return;
-        } 
-        if (!confirm('キーボードにキーマップと設定を書き込みます。書き込み後、キーボードは自動的に再起動します。\n\n続行しますか?')) return;
-        
-        try { 
-            connectionStatus.textContent = 'Status: 書き込み中...'; 
-            saveToKeyboardButton.disabled = true; 
-            
-            if (connectionType === 'usb') {
-                const writer = serialPort.writable.getWriter();
-                const encoder = new TextEncoder();
-                const decoder = new TextDecoder();
-                
-                try {
-                    // キーマップ書き込み
-                    connectionStatus.textContent = 'Status: キーマップ書き込み中...';
-                    const keymapBytes = convertKeymapToBytes(keymapData); 
-                    await writer.write(encoder.encode('WRITE_KEYMAP\n'));
-                    await new Promise(r => setTimeout(r, 100));
-                    await writer.write(new Uint8Array(keymapBytes));
-                    writer.releaseLock();
-                    
-                    // キーマップ書き込みの応答を待つ
-                    const reader1 = serialPort.readable.getReader();
-                    let response1 = '';
-                    const timeout1 = setTimeout(() => {
-                        try { reader1.cancel(); } catch(e) {}
-                    }, 5000);
-                    
-                    try {
-                        while (true) {
-                            const { value, done } = await reader1.read();
-                            if (done) break;
-                            response1 += decoder.decode(value, { stream: true });
-                            if (response1.includes('OK') || response1.includes('ERROR')) {
-                                clearTimeout(timeout1);
-                                break;
-                            }
-                        }
-                    } finally {
-                        try { reader1.releaseLock(); } catch(e) {}
-                    }
-                    
-                    // 応答をログに表示
-                    addDebugLog(`キーマップ書き込み応答: ${response1.trim()}`);
-                    
-                    if (response1.includes('ERROR')) {
-                        throw new Error('キーマップ書き込みに失敗しました');
-                    }
-                    addDebugLog('✓ USB経由でキーマップ書き込み完了');
-
-                    // 設定書き込み
-                    const writer2 = serialPort.writable.getWriter();
-                    connectionStatus.textContent = 'Status: 設定書き込み中...';
-                    const settingsBytes = convertSettingsToBytes();
-                    await writer2.write(encoder.encode('WRITE_CONFIG\n'));
-                    await new Promise(r => setTimeout(r, 100));
-                    await writer2.write(new Uint8Array(settingsBytes));
-                    writer2.releaseLock();
-                    
-                    // 設定書き込みの応答を待つ
-                    const reader2 = serialPort.readable.getReader();
-                    let response2 = '';
-                    const timeout2 = setTimeout(() => {
-                        try { reader2.cancel(); } catch(e) {}
-                    }, 5000);
-                    
-                    try {
-                        while (true) {
-                            const { value, done } = await reader2.read();
-                            if (done) break;
-                            response2 += decoder.decode(value, { stream: true });
-                            if (response2.includes('OK') || response2.includes('ERROR')) {
-                                clearTimeout(timeout2);
-                                break;
-                            }
-                        }
-                    } finally {
-                        try { reader2.releaseLock(); } catch(e) {}
-                    }
-                    
-                    // 応答をログに表示
-                    addDebugLog(`設定書き込み応答: ${response2.trim()}`);
-                    
-                    if (response2.includes('ERROR')) {
-                        throw new Error('設定書き込みに失敗しました');
-                    }
-                    addDebugLog('✓ USB経由で設定書き込み完了');
-
-                    // 再起動コマンド送信
-                    const writer3 = serialPort.writable.getWriter();
-                    connectionStatus.textContent = 'Status: 再起動コマンド送信中...';
-                    await writer3.write(encoder.encode('REBOOT\n'));
-                    writer3.releaseLock();
-                    
-                    // 再起動応答を待つ
-                    const reader3 = serialPort.readable.getReader();
-                    let response3 = '';
-                    const timeout3 = setTimeout(() => {
-                        try { reader3.cancel(); } catch(e) {}
-                    }, 2000);
-                    
-                    try {
-                        while (true) {
-                            const { value, done } = await reader3.read();
-                            if (done) break;
-                            response3 += decoder.decode(value, { stream: true });
-                            if (response3.includes('OK')) {
-                                clearTimeout(timeout3);
-                                break;
-                            }
-                        }
-                    } catch (e) {
-                        // 再起動によってシリアルが切断される場合があるのでエラーは無視
-                        addDebugLog('再起動により接続が切断されました（正常）');
-                    } finally {
-                        try { reader3.releaseLock(); } catch(e) {}
-                    }
-                    
-                    // 応答をログに表示
-                    if (response3) {
-                        addDebugLog(`再起動応答: ${response3.trim()}`);
-                    }
-                    addDebugLog('✓ USB経由で再起動コマンド送信完了');
-                } catch (error) {
-                    // writerがロックされている場合は解放を試みる
-                    try { writer.releaseLock(); } catch(e) {}
-                    throw error;
-                }
-
-            } else if (connectionType === 'bluetooth') {
-                const keymapBytes = convertKeymapToBytes(keymapData); 
-                const CHUNK_BT = 20; 
-                for (let i = 0; i < Math.ceil(keymapBytes.byteLength / CHUNK_BT); i++) { 
-                    const chunk = keymapBytes.slice(i * CHUNK_BT, (i + 1) * CHUNK_BT); 
-                    await keymapCharacteristic.writeValueWithoutResponse(chunk); 
-                    const progress = Math.round(((i + 1) / Math.ceil(keymapBytes.byteLength / CHUNK_BT)) * 50);
-                    connectionStatus.textContent = `Status: キーマップ書き込み中... (${progress}%)`; 
-                    await new Promise(r => setTimeout(r, 20)); 
-                }
-
-                if (configCharacteristic) {
-                    const settingsBytes = convertSettingsToBytes();
-                    for (let i = 0; i < Math.ceil(settingsBytes.byteLength / CHUNK_BT); i++) {
-                        const chunk = settingsBytes.slice(i * CHUNK_BT, (i + 1) * CHUNK_BT);
-                        await configCharacteristic.writeValueWithoutResponse(chunk);
-                        const progress = 50 + Math.round(((i + 1) / Math.ceil(settingsBytes.byteLength / CHUNK_BT)) * 50);
-                        connectionStatus.textContent = `Status: 設定書き込み中... (${progress}%)`;
-                        await new Promise(r => setTimeout(r, 50));
-                    }
-                    addDebugLog('BT経由で設定書き込み完了');
-                }
-            }
-            
-            connectionStatus.textContent = 'Status: 書き込み完了! キーボードが再起動します'; 
-            alert('✓ キーマップと設定の保存に成功しました!\n\nキーボードが再起動します。\n数秒後に再接続してください。'); 
-            
-            // USB接続の場合は再起動によって自動的に切断される
-            // Bluetooth接続の場合は手動で切断
-            if (connectionType === 'bluetooth') {
-                setTimeout(() => {
-                    disconnectBluetooth();
-                }, 1000);
-            } else if (connectionType === 'usb') {
-                // USB再起動後の自動切断を待つ
-                setTimeout(() => {
-                    if (serialPort) {
-                        disconnectUSB();
-                    }
-                }, 2000);
-            }
-    
-        } catch (error) { 
-            alert('書き込みに失敗しました: ' + error.message); 
-            connectionStatus.textContent = 'Status: 書き込み失敗'; 
-            saveToKeyboardButton.disabled = false; 
-            addDebugLog('書き込みエラー: ' + error.message);
-        } 
+    if (pct !== null) {
+      document.getElementById('batteryValue').textContent = `${pct}%`;
+      addLog('ok', `バッテリー: ${pct}%`);
     }
-    
-    function convertKeymapToBytes(stringKeymap) { 
-        const buffer = new ArrayBuffer(2 * 65 * 2); 
-        const view = new DataView(buffer); 
-        stringKeymap.forEach((layer, layerIndex) => { 
-            layer.forEach((keycodeStr, keyIndex) => { 
-                const value = KEYCODE_TO_VALUE_MAP[keycodeStr] || 0; 
-                view.setUint16((layerIndex * 65 + keyIndex) * 2, value, true); 
-            }); 
-        }); 
-        return buffer; 
-    }
-    
-    function convertSettingsToBytes() {
-        const buffer = new ArrayBuffer(56);
-        const view = new DataView(buffer);
-        let offset = 0;
-        view.setUint16(offset, parseInt(document.getElementById('STICK_CENTER_X').value), true); offset += 2;
-        view.setUint16(offset, parseInt(document.getElementById('STICK_CENTER_Y').value), true); offset += 2;
-        view.setUint16(offset, parseInt(document.getElementById('STICK_DEADZONE').value), true); offset += 2;
-        view.setFloat32(offset, parseFloat(document.getElementById('MOUSE_HIGH_SPEED').value), true); offset += 4;
-        view.setFloat32(offset, parseFloat(document.getElementById('MOUSE_LOW_SPEED').value), true); offset += 4;
-        view.setUint16(offset, parseInt(document.getElementById('MOUSE_ACCEL_THRESHOLD').value), true); offset += 2;
-        view.setUint16(offset, parseInt(document.getElementById('SMOOTHING_SAMPLES').value), true); offset += 2;
-        view.setUint16(offset, parseInt(document.getElementById('SCROLL_MIN_THRESHOLD').value), true); offset += 2;
-        view.setUint16(offset, parseInt(document.getElementById('SCROLL_MAX_THRESHOLD').value), true); offset += 2;
-        view.setFloat32(offset, parseFloat(document.getElementById('SCROLL_MIN_SPEED').value), true); offset += 4;
-        view.setFloat32(offset, parseFloat(document.getElementById('SCROLL_MAX_SPEED').value), true); offset += 4;
-        view.setUint16(offset, parseInt(document.getElementById('SCROLL_INTERVAL_MS').value), true); offset += 2;
-        view.setFloat32(offset, parseFloat(document.getElementById('MOUSE_HIGH_SPEED_BT').value), true); offset += 4;
-        view.setFloat32(offset, parseFloat(document.getElementById('SCROLL_MIN_SPEED_BT').value), true); offset += 4;
-        view.setFloat32(offset, parseFloat(document.getElementById('SCROLL_MAX_SPEED_BT').value), true); offset += 4;
-        view.setUint32(offset, parseInt(document.getElementById('SLEEP_TIMEOUT').value), true); offset += 4;
-        view.setUint16(offset, parseInt(document.getElementById('LED_BRIGHTNESS').value), true); offset += 2;
-        view.setUint16(offset, parseInt(document.getElementById('BLINK_INTERVAL_MS').value), true); offset += 2;
-        view.setUint32(offset, 0x504F5441, true);
-        return buffer;
-    }
-    
-    function parseSettingsFromBytes(buffer) {
-        const isOldVersion = buffer.byteLength === 44;
-        const isNewVersion = buffer.byteLength === 56;
-        if (!isOldVersion && !isNewVersion) throw new Error(`設定データサイズが不正: ${buffer.byteLength} bytes`);
-        
-        const view = new DataView(buffer);
-        const s = {};
-        let offset = 0;
-        
-        s.STICK_CENTER_X = view.getUint16(offset, true); offset += 2;
-        s.STICK_CENTER_Y = view.getUint16(offset, true); offset += 2;
-        s.STICK_DEADZONE = view.getUint16(offset, true); offset += 2;
-        s.MOUSE_HIGH_SPEED = view.getFloat32(offset, true).toFixed(1); offset += 4;
-        s.MOUSE_LOW_SPEED = view.getFloat32(offset, true).toFixed(1); offset += 4;
-        s.MOUSE_ACCEL_THRESHOLD = view.getUint16(offset, true); offset += 2;
-        s.SMOOTHING_SAMPLES = view.getUint16(offset, true); offset += 2;
-        s.SCROLL_MIN_THRESHOLD = view.getUint16(offset, true); offset += 2;
-        s.SCROLL_MAX_THRESHOLD = view.getUint16(offset, true); offset += 2;
-        s.SCROLL_MIN_SPEED = view.getFloat32(offset, true).toFixed(2); offset += 4;
-        s.SCROLL_MAX_SPEED = view.getFloat32(offset, true).toFixed(2); offset += 4;
-        s.SCROLL_INTERVAL_MS = view.getUint16(offset, true); offset += 2;
-        
-        if (isNewVersion) {
-            s.MOUSE_HIGH_SPEED_BT = view.getFloat32(offset, true).toFixed(1); offset += 4;
-            s.SCROLL_MIN_SPEED_BT = view.getFloat32(offset, true).toFixed(2); offset += 4;
-            s.SCROLL_MAX_SPEED_BT = view.getFloat32(offset, true).toFixed(2); offset += 4;
-        }
-        
-        s.SLEEP_TIMEOUT = view.getUint32(offset, true); offset += 4;
-        s.LED_BRIGHTNESS = view.getUint16(offset, true); offset += 2;
-        s.BLINK_INTERVAL_MS = view.getUint16(offset, true); offset += 2;
+  } catch (err) {
+    addLog('error', `バッテリー取得エラー: ${err.message}`);
+  }
+}
 
-        Object.keys(s).forEach(key => {
-            const el = document.getElementById(key);
-            if (el) el.value = s[key];
-        });
-        
-        addDebugLog('設定値のパース完了');
-    }
-    
-    layerSelector.addEventListener('change', (e) => { currentLayer = parseInt(e.target.value); selectedKeyIndices.clear(); renderKeyboard(); });
-    generateButton.addEventListener('click', generateFile);
-    fileImporter.addEventListener('change', (e) => { const file = e.target.files[0]; if (!file) return; const reader = new FileReader(); reader.onload = (event) => { parseKeymapH(event.target.result); }; reader.readAsText(file); e.target.value = ''; });
-    connectButton.addEventListener('click', connectBluetooth);
-    disconnectButton.addEventListener('click', disconnectBluetooth);
-    connectUsbButton.addEventListener('click', connectUSB);
-    disconnectUsbButton.addEventListener('click', disconnectUSB);
-    saveToKeyboardButton.addEventListener('click', saveToKeyboard);
-    loadFromKeyboardButton.addEventListener('click', loadFromKeyboard);
-    jisLayoutToggle.addEventListener('change', renderKeyboard);
-    document.addEventListener('keydown', handleKeyCapture);
+// ===================================================
+// 20. BLE キーマップ読み書き
+// ===================================================
+async function bleLoadKeymap() {
+  // 260バイト = 2レイヤー × 65キー × 2バイト
+  const val = await keymapChar.readValue();
+  if (val.byteLength < 260) throw new Error(`keymapデータ長不正: ${val.byteLength} bytes`);
+  parseKeymapBinary(val.buffer);
+  renderKeyboard();
+  addLog('info', `キーマップ読み込み: ${val.byteLength} bytes`);
+}
 
-    renderPalette();
-    renderKeyboard();
-    
-    document.getElementById('MOUSE_HIGH_SPEED').value = "3.6";
-    document.getElementById('MOUSE_LOW_SPEED').value = "0.0";
-    document.getElementById('MOUSE_ACCEL_THRESHOLD').value = "400";
-    document.getElementById('STICK_CENTER_X').value = "470";
-    document.getElementById('STICK_CENTER_Y').value = "470";
-    document.getElementById('STICK_DEADZONE').value = "75";
-    document.getElementById('SMOOTHING_SAMPLES').value = "2";
-    document.getElementById('SCROLL_MIN_THRESHOLD').value = "80";
-    document.getElementById('SCROLL_MAX_THRESHOLD').value = "350";
-    document.getElementById('SCROLL_MIN_SPEED').value = "0.05";
-    document.getElementById('SCROLL_MAX_SPEED').value = "0.20";
-    document.getElementById('SCROLL_INTERVAL_MS').value = "10";
-    document.getElementById('MOUSE_HIGH_SPEED_BT').value = "60.0";
-    document.getElementById('SCROLL_MIN_SPEED_BT').value = "0.15";
-    document.getElementById('SCROLL_MAX_SPEED_BT').value = "1.20";
-    document.getElementById('SLEEP_TIMEOUT').value = "300000";
-    document.getElementById('LED_BRIGHTNESS').value = "25";
-    document.getElementById('BLINK_INTERVAL_MS').value = "600";
-    
-    addDebugLog('アプリケーション起動完了');
+async function bleSaveKeymap() {
+  const buf = buildKeymapBinary();
+  // 128バイトずつチャンクに分割して送信
+  const CHUNK = 128;
+  for (let offset = 0; offset < buf.byteLength; offset += CHUNK) {
+    const chunk = buf.slice(offset, Math.min(offset + CHUNK, buf.byteLength));
+    await keymapChar.writeValueWithoutResponse(chunk);
+    // 少し待機してFW側の処理を待つ
+    await sleep(20);
+  }
+  addLog('info', `キーマップ保存: ${buf.byteLength} bytes (チャンク送信)`);
+}
+
+// ===================================================
+// 21. BLE コンフィグ読み書き
+// ===================================================
+async function bleLoadConfig() {
+  const val = await configChar.readValue();
+  if (val.byteLength < 34) throw new Error(`configデータ長不正: ${val.byteLength} bytes`);
+  parseConfigBinary(val.buffer);
+  syncConfigToForm();
+  addLog('info', `設定読み込み: ${val.byteLength} bytes`);
+}
+
+async function bleSaveConfig() {
+  const buf = buildConfigBinary();
+  await configChar.writeValueWithoutResponse(buf);
+  addLog('info', `設定保存: ${buf.byteLength} bytes`);
+}
+
+// ===================================================
+// 22. USB Serial コマンド送受信ユーティリティ
+// ===================================================
+async function usbSendCommand(cmd) {
+  if (!usbWriter) throw new Error('USB ライターが初期化されていません');
+  const encoder = new TextEncoder();
+  await usbWriter.write(encoder.encode(cmd + '\n'));
+}
+
+// 指定タイムアウトで1行読み取る
+async function usbReadLine(timeoutMs) {
+  if (!usbReadable) throw new Error('USB リーダブルが初期化されていません');
+  const reader = usbReadable.getReader();
+  const decoder = new TextDecoder();
+  let buf = '';
+  const deadline = Date.now() + timeoutMs;
+  try {
+    while (Date.now() < deadline) {
+      const remaining = deadline - Date.now();
+      const { value, done } = await Promise.race([
+        reader.read(),
+        new Promise((_, rej) => setTimeout(() => rej(new Error('タイムアウト')), remaining)),
+      ]);
+      if (done) break;
+      buf += decoder.decode(value, { stream: true });
+      const nl = buf.indexOf('\n');
+      if (nl >= 0) {
+        const line = buf.slice(0, nl).trim();
+        return line;
+      }
+    }
+    throw new Error('タイムアウト: レスポンスなし');
+  } finally {
+    reader.releaseLock();
+  }
+}
+
+// 指定バイト数だけ読み取る (タイムアウト付き)
+async function usbReadBytes(length, timeoutMs) {
+  if (!usbReadable) throw new Error('USB リーダブルが初期化されていません');
+  const reader = usbReadable.getReader();
+  const result = new Uint8Array(length);
+  let received = 0;
+  const deadline = Date.now() + timeoutMs;
+  try {
+    while (received < length && Date.now() < deadline) {
+      const remaining = deadline - Date.now();
+      const { value, done } = await Promise.race([
+        reader.read(),
+        new Promise((_, rej) => setTimeout(() => rej(new Error('タイムアウト')), remaining)),
+      ]);
+      if (done) break;
+      for (let i = 0; i < value.length && received < length; i++) {
+        result[received++] = value[i];
+      }
+    }
+    if (received < length) throw new Error(`データ不足: ${received}/${length} bytes`);
+    return result.buffer;
+  } finally {
+    reader.releaseLock();
+  }
+}
+
+// ===================================================
+// 23. USB Serial キーマップ読み書き
+// ===================================================
+async function usbLoadKeymap() {
+  await usbSendCommand('READ_KEYMAP');
+  await sleep(200);
+  const buf = await usbReadBytes(260, 3000);
+  parseKeymapBinary(buf);
+  renderKeyboard();
+  addLog('info', 'USB: キーマップ読み込み完了 (260 bytes)');
+}
+
+async function usbSaveKeymap() {
+  await usbSendCommand('WRITE_KEYMAP');
+  await sleep(50);
+  const buf = buildKeymapBinary();
+  if (!usbWriter) throw new Error('USB ライターが初期化されていません');
+  await usbWriter.write(new Uint8Array(buf));
+  const resp = await usbReadLine(3000);
+  if (!resp.includes('OK')) throw new Error(`予期しないレスポンス: ${resp}`);
+  addLog('info', 'USB: キーマップ保存完了');
+}
+
+// ===================================================
+// 24. USB Serial コンフィグ読み書き
+// ===================================================
+async function usbLoadConfig() {
+  await usbSendCommand('READ_CONFIG');
+  await sleep(200);
+  const buf = await usbReadBytes(35, 3000);
+  parseConfigBinary(buf);
+  syncConfigToForm();
+  addLog('info', 'USB: 設定読み込み完了 (35 bytes)');
+}
+
+async function usbSaveConfig() {
+  await usbSendCommand('WRITE_CONFIG');
+  await sleep(50);
+  const buf = buildConfigBinary();
+  if (!usbWriter) throw new Error('USB ライターが初期化されていません');
+  await usbWriter.write(new Uint8Array(buf));
+  const resp = await usbReadLine(3000);
+  if (!resp.includes('OK')) throw new Error(`予期しないレスポンス: ${resp}`);
+  addLog('info', 'USB: 設定保存完了');
+}
+
+// ===================================================
+// 25. キーマップバイナリ変換
+// ===================================================
+// ArrayBuffer → keymapData へ変換 (260バイト)
+function parseKeymapBinary(buf) {
+  const view = new DataView(buf);
+  for (let layer = 0; layer < NUM_LAYERS; layer++) {
+    for (let k = 0; k < NUM_KEYS; k++) {
+      const offset = (layer * NUM_KEYS + k) * 2;
+      keymapData[layer][k] = view.getUint16(offset, true); // LE
+    }
+  }
+}
+
+// keymapData → ArrayBuffer (260バイト)
+function buildKeymapBinary() {
+  const buf  = new ArrayBuffer(NUM_LAYERS * NUM_KEYS * 2);
+  const view = new DataView(buf);
+  for (let layer = 0; layer < NUM_LAYERS; layer++) {
+    for (let k = 0; k < NUM_KEYS; k++) {
+      const offset = (layer * NUM_KEYS + k) * 2;
+      view.setUint16(offset, keymapData[layer][k], true); // LE
+    }
+  }
+  return buf;
+}
+
+// ===================================================
+// 26. コンフィグバイナリ変換
+// ===================================================
+// Config構造体 (packed, 35バイト) v3
+// Offset 0:  uint8_t  version
+// Offset 1:  uint16_t stick_center_x   LE
+// Offset 3:  uint16_t stick_center_y   LE
+// Offset 5:  uint16_t stick_deadzone   LE
+// Offset 7:  uint16_t stick_range_x    LE
+// Offset 9:  uint16_t stick_range_y    LE
+// Offset 11: float32  stick_ema_alpha  LE
+// Offset 15: float32  mouse_max_speed  LE
+// Offset 19: float32  scroll_max_speed LE
+// Offset 23: uint32_t sleep_timeout_ms LE
+// Offset 27: uint8_t  led_brightness
+// Offset 28: uint16_t blink_interval_ms LE
+// Offset 30: uint8_t  scroll_invert  (0=通常, 1=反転)
+// Offset 31: uint32_t magic LE  = 0x504F5441
+// Total: 35 bytes
+
+function parseConfigBinary(buf) {
+  const view = new DataView(buf instanceof ArrayBuffer ? buf : buf.buffer);
+  config.version          = view.getUint8(0);
+  config.stick_center_x   = view.getUint16(1,  true);
+  config.stick_center_y   = view.getUint16(3,  true);
+  config.stick_deadzone   = view.getUint16(5,  true);
+  config.stick_range_x    = view.getUint16(7,  true);
+  config.stick_range_y    = view.getUint16(9,  true);
+  config.stick_ema_alpha  = view.getFloat32(11,true);
+  config.mouse_max_speed  = view.getFloat32(15,true);
+  config.scroll_max_speed = view.getFloat32(19,true);
+  config.sleep_timeout_ms = view.getUint32(23, true);
+  config.led_brightness   = view.getUint8(27);
+  config.blink_interval_ms= view.getUint16(28, true);
+  config.scroll_invert    = view.getUint8(30);
+  config.magic            = view.getUint32(31, true);
+}
+
+function buildConfigBinary() {
+  const buf  = new ArrayBuffer(35);
+  const view = new DataView(buf);
+  view.setUint8(0,   config.version);
+  view.setUint16(1,  config.stick_center_x,   true);
+  view.setUint16(3,  config.stick_center_y,   true);
+  view.setUint16(5,  config.stick_deadzone,   true);
+  view.setUint16(7,  config.stick_range_x,    true);
+  view.setUint16(9,  config.stick_range_y,    true);
+  view.setFloat32(11,config.stick_ema_alpha,  true);
+  view.setFloat32(15,config.mouse_max_speed,  true);
+  view.setFloat32(19,config.scroll_max_speed, true);
+  view.setUint32(23, config.sleep_timeout_ms, true);
+  view.setUint8(27,  config.led_brightness);
+  view.setUint16(28, config.blink_interval_ms,true);
+  view.setUint8(30,  config.scroll_invert ? 1 : 0);
+  view.setUint32(31, 0x504F5441,              true); // magic "POTA"
+  return buf;
+}
+
+// ===================================================
+// 27. 設定フォームとConfigの双方向バインド
+// ===================================================
+// Config → フォームへ同期
+function syncConfigToForm() {
+  // スライダーとバッジ (sliderFn: config値→スライダー整数, hintFn: config値→表示文字列)
+  setSlider('cfgCenterX',      'hintCenterX',      config.stick_center_x,    v=>Math.round(v),       v=>String(Math.round(v)));
+  setSlider('cfgCenterY',      'hintCenterY',      config.stick_center_y,    v=>Math.round(v),       v=>String(Math.round(v)));
+  setSlider('cfgDeadzone',     'hintDeadzone',     config.stick_deadzone,    v=>Math.round(v),       v=>String(Math.round(v)));
+  setSlider('cfgRangeX',       'hintRangeX',       config.stick_range_x,     v=>Math.round(v),       v=>String(Math.round(v)));
+  setSlider('cfgRangeY',       'hintRangeY',       config.stick_range_y,     v=>Math.round(v),       v=>String(Math.round(v)));
+  setSlider('cfgEmaAlpha',     'hintEmaAlpha',     config.stick_ema_alpha,   v=>Math.round(v*100),   v=>v.toFixed(2));
+  setSlider('cfgMouseSpeed',   'hintMouseSpeed',   config.mouse_max_speed,   v=>Math.round(v*100),   v=>v.toFixed(2));
+  setSlider('cfgScrollSpeed',  'hintScrollSpeed',  config.scroll_max_speed,  v=>Math.round(v*100),   v=>v.toFixed(2));
+  setSlider('cfgSleepTimeout', 'hintSleepTimeout', config.sleep_timeout_ms,  v=>Math.round(v/1000),  v=>String(Math.round(v/1000)));
+  setSlider('cfgLedBrightness','hintLedBrightness',config.led_brightness,    v=>Math.round(v),       v=>String(Math.round(v)));
+  setSlider('cfgBlinkInterval','hintBlinkInterval',config.blink_interval_ms, v=>Math.round(v),       v=>String(Math.round(v)));
+
+  // チェックボックス
+  const scrollInvertEl = document.getElementById('cfgScrollInvert');
+  if (scrollInvertEl) scrollInvertEl.checked = !!config.scroll_invert;
+
+  // 数値入力フィールド
+  setNum('cfgCenterXNum',      config.stick_center_x,    0);
+  setNum('cfgCenterYNum',      config.stick_center_y,    0);
+  setNum('cfgDeadzoneNum',     config.stick_deadzone,    0);
+  setNum('cfgRangeXNum',       config.stick_range_x,     0);
+  setNum('cfgRangeYNum',       config.stick_range_y,     0);
+  setNum('cfgEmaAlphaNum',     config.stick_ema_alpha,   2);
+  setNum('cfgMouseSpeedNum',   config.mouse_max_speed,   2);
+  setNum('cfgScrollSpeedNum',  config.scroll_max_speed,  2);
+  setNum('cfgSleepTimeoutNum', config.sleep_timeout_ms / 1000, 0);
+  setNum('cfgLedBrightnessNum',config.led_brightness,   0);
+  setNum('cfgBlinkIntervalNum',config.blink_interval_ms,0);
+}
+
+// setSlider: config値をスライダーとヒントバッジに反映する
+// sliderId: スライダー要素ID
+// hintId:   バッジ要素ID
+// value:    実際のconfig値
+// sliderFn: config値 → スライダー整数値 への変換関数
+// hintFn:   config値 → 表示文字列 への変換関数
+function setSlider(sliderId, hintId, value, sliderFn, hintFn) {
+  const slider = document.getElementById(sliderId);
+  const hint   = document.getElementById(hintId);
+  if (!slider || !hint) return;
+  slider.value = sliderFn(value);
+  hint.textContent = hintFn(value);
+}
+
+function setNum(id, value, decimals) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.value = decimals ? value.toFixed(decimals) : Math.round(value);
+}
+
+// スライダー変更時 (HTMLから呼ばれる)
+// key: config のプロパティ名
+// rawValue: スライダーで計算済みの実際のconfig値
+// hintId: バッジのID
+// fmtFn: バッジの表示フォーマット関数
+// numId: 数値入力フィールドのID
+function onRangeInput(key, rawValue, hintId, fmtFn, numId) {
+  config[key] = rawValue;
+  const hint = document.getElementById(hintId);
+  if (hint) hint.textContent = fmtFn(rawValue);
+  // 数値入力フィールドも同期
+  const numEl = document.getElementById(numId);
+  if (numEl) {
+    // sleep_timeout_ms は秒単位で表示
+    if (key === 'sleep_timeout_ms') {
+      numEl.value = Math.round(rawValue / 1000);
+    } else if (typeof rawValue === 'number' && !Number.isInteger(rawValue)) {
+      numEl.value = rawValue.toFixed(2);
+    } else {
+      numEl.value = Math.round(rawValue);
+    }
+  }
+}
+
+// 数値入力フィールド変更時 (HTMLから呼ばれる)
+// scale: スライダー値 = config値 × scale
+// isFloat: floatか
+function onNumInput(key, numId, sliderId, hintId, scale, isFloat) {
+  const numEl   = document.getElementById(numId);
+  const slider  = document.getElementById(sliderId);
+  const hint    = document.getElementById(hintId);
+  if (!numEl) return;
+  let val = parseFloat(numEl.value);
+  if (isNaN(val)) return;
+  // sleep_timeout_ms: UIは秒単位で入力、configはms単位で保持
+  if (key === 'sleep_timeout_ms') {
+    config[key] = Math.round(val) * 1000;
+    if (slider) slider.value = Math.round(val);
+    if (hint)   hint.textContent = String(Math.round(val));
+  } else {
+    config[key] = val;
+    if (slider) slider.value = Math.round(val * scale);
+    if (hint)   hint.textContent = isFloat ? val.toFixed(2) : String(Math.round(val));
+  }
+}
+
+function resetConfigToDefault() {
+  config = getDefaultConfig();
+  syncConfigToForm();
+  addLog('info', '設定をデフォルト値に戻しました');
+}
+
+// ===================================================
+// 28. ファイルエクスポート / インポート
+// ===================================================
+function exportToFile() {
+  const data = {
+    version: 2,
+    keymap: [
+      Array.from(keymapData[0]),
+      Array.from(keymapData[1]),
+    ],
+    config: { ...config },
+  };
+  const json = JSON.stringify(data, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = 'potakb_config.json';
+  a.click();
+  URL.revokeObjectURL(url);
+  addLog('ok', 'JSON エクスポート完了');
+}
+
+function importFromFile(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (!data.keymap || !data.config) throw new Error('無効なフォーマット');
+      keymapData[0] = new Uint16Array(data.keymap[0]);
+      keymapData[1] = new Uint16Array(data.keymap[1]);
+      config = { ...getDefaultConfig(), ...data.config };
+      renderKeyboard();
+      syncConfigToForm();
+      addLog('ok', `JSON インポート完了: ${file.name}`);
+    } catch (err) {
+      addLog('error', `インポートエラー: ${err.message}`);
+    }
+  };
+  reader.readAsText(file);
+  // 同じファイルを再インポートできるようにリセット
+  event.target.value = '';
+}
+
+// ===================================================
+// 29. ログ
+// ===================================================
+const MAX_LOG_ENTRIES = 50;
+let logEntries = [];
+
+function addLog(type, msg) {
+  const now  = new Date();
+  const time = now.toTimeString().slice(0, 8);
+  logEntries.push({ type, time, msg });
+  if (logEntries.length > MAX_LOG_ENTRIES) logEntries.shift();
+  renderLog();
+}
+
+function renderLog() {
+  const container = document.getElementById('logContent');
+  container.innerHTML = '';
+  for (const entry of logEntries) {
+    const div  = document.createElement('div');
+    div.className = `log-entry log-${entry.type}`;
+    const ts   = document.createElement('span');
+    ts.className = 'log-time';
+    ts.textContent = entry.time;
+    const msg  = document.createElement('span');
+    msg.className = 'log-msg';
+    msg.textContent = entry.msg;
+    div.appendChild(ts);
+    div.appendChild(msg);
+    container.appendChild(div);
+  }
+  // 最新行にスクロール
+  container.scrollTop = container.scrollHeight;
+}
+
+function clearLog() {
+  logEntries = [];
+  renderLog();
+}
+
+// ===================================================
+// 30. ユーティリティ
+// ===================================================
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+// ===================================================
+// キャプチャモード: keydownハンドラ
+// ===================================================
+document.addEventListener('keydown', (e) => {
+  if (!captureMode) return;
+  e.preventDefault();
+
+  if (e.code === 'Escape') {
+    stopCapture();
+    addLog('info', 'キャプチャキャンセル');
+    return;
+  }
+
+  const hid = EVENT_CODE_TO_HID[e.code];
+  if (hid === undefined) {
+    addLog('warn', `未対応のキー: ${e.code}`);
+    return;
+  }
+
+  assignKeycode(hid);
+  stopCapture();
 });
