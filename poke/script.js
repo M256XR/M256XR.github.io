@@ -243,7 +243,7 @@ let currentLayer = 0;
 let currentPaletteCat = 'special';
 
 // Config オブジェクト
-let config = getDefaultConfig();
+let config;
 
 // 接続状態
 let connState = 'disconnected'; // 'disconnected' | 'connecting' | 'connected'
@@ -271,6 +271,8 @@ const BLE_BATTERY_CHAR  = 0x2a19;
 const CONFIG_VERSION = 3;
 const CONFIG_BINARY_SIZE = 35;
 const CONFIG_MAGIC = 0x504F5441;
+
+config = getDefaultConfig();
 
 // ===================================================
 // 4. デフォルト設定値
