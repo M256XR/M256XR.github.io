@@ -1,6 +1,6 @@
 'use strict';
 // ===================================================
-// PotaKB Configurator v2.0 — メインスクリプト
+// PotaKB Configurator v3.0 - main script
 // ===================================================
 
 // ===================================================
@@ -268,13 +268,16 @@ const BLE_KEYMAP_UUID   = 'adaf0002-c332-42a8-93bd-25e905756cb8';
 const BLE_CONFIG_UUID   = 'adaf0003-c332-42a8-93bd-25e905756cb8';
 const BLE_BATTERY_SVC   = 0x180f;
 const BLE_BATTERY_CHAR  = 0x2a19;
+const CONFIG_VERSION = 3;
+const CONFIG_BINARY_SIZE = 35;
+const CONFIG_MAGIC = 0x504F5441;
 
 // ===================================================
 // 4. デフォルト設定値
 // ===================================================
 function getDefaultConfig() {
   return {
-    version:         3,
+    version:         CONFIG_VERSION,
     stick_center_x:  512,
     stick_center_y:  512,
     stick_deadzone:  75,
@@ -287,8 +290,38 @@ function getDefaultConfig() {
     led_brightness:  25,
     blink_interval_ms:600,
     scroll_invert:   0,
-    magic:           0x504F5441,
+    magic:           CONFIG_MAGIC,
   };
+}
+
+function clampNumber(value, min, max) {
+  const num = Number(value);
+  if (!Number.isFinite(num)) return min;
+  return Math.min(Math.max(num, min), max);
+}
+
+function clampInt(value, min, max) {
+  return Math.round(clampNumber(value, min, max));
+}
+
+function sanitizeConfig() {
+  config.version = CONFIG_VERSION;
+  config.magic = CONFIG_MAGIC;
+  config.stick_center_x = clampInt(config.stick_center_x, 0, 1023);
+  config.stick_center_y = clampInt(config.stick_center_y, 0, 1023);
+  config.stick_range_x = clampInt(config.stick_range_x, 50, 511);
+  config.stick_range_y = clampInt(config.stick_range_y, 50, 511);
+
+  const maxDeadzone = Math.max(0, Math.min(300, config.stick_range_x - 1, config.stick_range_y - 1));
+  config.stick_deadzone = clampInt(config.stick_deadzone, 0, maxDeadzone);
+
+  config.stick_ema_alpha = clampNumber(config.stick_ema_alpha, 0.01, 1.0);
+  config.mouse_max_speed = clampNumber(config.mouse_max_speed, 0.01, 5.0);
+  config.scroll_max_speed = clampNumber(config.scroll_max_speed, 0.01, 2.0);
+  config.sleep_timeout_ms = clampInt(config.sleep_timeout_ms, 10000, 3600000);
+  config.led_brightness = clampInt(config.led_brightness, 0, 255);
+  config.blink_interval_ms = clampInt(config.blink_interval_ms, 100, 5000);
+  config.scroll_invert = config.scroll_invert ? 1 : 0;
 }
 
 // ===================================================
@@ -299,7 +332,7 @@ window.addEventListener('DOMContentLoaded', () => {
   renderKeyboard();
   buildPalette('special');
   syncConfigToForm();
-  addLog('info', 'PotaKB Configurator v2.0 起動完了');
+  addLog('info', 'PotaKB Configurator v3.0 起動完了');
 });
 
 // ===================================================
@@ -946,7 +979,7 @@ async function bleSaveKeymap() {
 // ===================================================
 async function bleLoadConfig() {
   const val = await configChar.readValue();
-  if (val.byteLength < 34) throw new Error(`configデータ長不正: ${val.byteLength} bytes`);
+  if (val.byteLength < CONFIG_BINARY_SIZE) throw new Error(`configデータ長不正: ${val.byteLength} bytes`);
   parseConfigBinary(val.buffer);
   syncConfigToForm();
   addLog('info', `設定読み込み: ${val.byteLength} bytes`);
@@ -1050,10 +1083,10 @@ async function usbSaveKeymap() {
 async function usbLoadConfig() {
   await usbSendCommand('READ_CONFIG');
   await sleep(200);
-  const buf = await usbReadBytes(35, 3000);
+  const buf = await usbReadBytes(CONFIG_BINARY_SIZE, 3000);
   parseConfigBinary(buf);
   syncConfigToForm();
-  addLog('info', 'USB: 設定読み込み完了 (35 bytes)');
+  addLog('info', `USB: 設定読み込み完了 (${CONFIG_BINARY_SIZE} bytes)`);
 }
 
 async function usbSaveConfig() {
@@ -1130,10 +1163,12 @@ function parseConfigBinary(buf) {
   config.blink_interval_ms= view.getUint16(28, true);
   config.scroll_invert    = view.getUint8(30);
   config.magic            = view.getUint32(31, true);
+  sanitizeConfig();
 }
 
 function buildConfigBinary() {
-  const buf  = new ArrayBuffer(35);
+  sanitizeConfig();
+  const buf  = new ArrayBuffer(CONFIG_BINARY_SIZE);
   const view = new DataView(buf);
   view.setUint8(0,   config.version);
   view.setUint16(1,  config.stick_center_x,   true);
@@ -1157,6 +1192,13 @@ function buildConfigBinary() {
 // ===================================================
 // Config → フォームへ同期
 function syncConfigToForm() {
+  sanitizeConfig();
+  const deadzoneMax = Math.max(0, Math.min(300, config.stick_range_x - 1, config.stick_range_y - 1));
+  const deadzoneSlider = document.getElementById('cfgDeadzone');
+  if (deadzoneSlider) deadzoneSlider.max = String(deadzoneMax);
+  const deadzoneNum = document.getElementById('cfgDeadzoneNum');
+  if (deadzoneNum) deadzoneNum.max = String(deadzoneMax);
+
   // スライダーとバッジ (sliderFn: config値→スライダー整数, hintFn: config値→表示文字列)
   setSlider('cfgCenterX',      'hintCenterX',      config.stick_center_x,    v=>Math.round(v),       v=>String(Math.round(v)));
   setSlider('cfgCenterY',      'hintCenterY',      config.stick_center_y,    v=>Math.round(v),       v=>String(Math.round(v)));
@@ -1216,20 +1258,7 @@ function setNum(id, value, decimals) {
 // numId: 数値入力フィールドのID
 function onRangeInput(key, rawValue, hintId, fmtFn, numId) {
   config[key] = rawValue;
-  const hint = document.getElementById(hintId);
-  if (hint) hint.textContent = fmtFn(rawValue);
-  // 数値入力フィールドも同期
-  const numEl = document.getElementById(numId);
-  if (numEl) {
-    // sleep_timeout_ms は秒単位で表示
-    if (key === 'sleep_timeout_ms') {
-      numEl.value = Math.round(rawValue / 1000);
-    } else if (typeof rawValue === 'number' && !Number.isInteger(rawValue)) {
-      numEl.value = rawValue.toFixed(2);
-    } else {
-      numEl.value = Math.round(rawValue);
-    }
-  }
+  syncConfigToForm();
 }
 
 // 数値入力フィールド変更時 (HTMLから呼ばれる)
@@ -1237,25 +1266,21 @@ function onRangeInput(key, rawValue, hintId, fmtFn, numId) {
 // isFloat: floatか
 function onNumInput(key, numId, sliderId, hintId, scale, isFloat) {
   const numEl   = document.getElementById(numId);
-  const slider  = document.getElementById(sliderId);
-  const hint    = document.getElementById(hintId);
   if (!numEl) return;
   let val = parseFloat(numEl.value);
   if (isNaN(val)) return;
   // sleep_timeout_ms: UIは秒単位で入力、configはms単位で保持
   if (key === 'sleep_timeout_ms') {
     config[key] = Math.round(val) * 1000;
-    if (slider) slider.value = Math.round(val);
-    if (hint)   hint.textContent = String(Math.round(val));
   } else {
     config[key] = val;
-    if (slider) slider.value = Math.round(val * scale);
-    if (hint)   hint.textContent = isFloat ? val.toFixed(2) : String(Math.round(val));
   }
+  syncConfigToForm();
 }
 
 function resetConfigToDefault() {
   config = getDefaultConfig();
+  sanitizeConfig();
   syncConfigToForm();
   addLog('info', '設定をデフォルト値に戻しました');
 }
@@ -1264,8 +1289,9 @@ function resetConfigToDefault() {
 // 28. ファイルエクスポート / インポート
 // ===================================================
 function exportToFile() {
+  sanitizeConfig();
   const data = {
-    version: 2,
+    version: CONFIG_VERSION,
     keymap: [
       Array.from(keymapData[0]),
       Array.from(keymapData[1]),
@@ -1294,6 +1320,7 @@ function importFromFile(event) {
       keymapData[0] = new Uint16Array(data.keymap[0]);
       keymapData[1] = new Uint16Array(data.keymap[1]);
       config = { ...getDefaultConfig(), ...data.config };
+      sanitizeConfig();
       renderKeyboard();
       syncConfigToForm();
       addLog('ok', `JSON インポート完了: ${file.name}`);
