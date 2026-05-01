@@ -257,6 +257,7 @@
         title: 'PotaKB Configurator',
         summary: 'PotaKB firmware v3 settings and keymap editor.',
         tone: 'teal',
+        query: 'v=3.0.0',
       },
       {
         path: 'funya',
@@ -308,7 +309,7 @@
         const item = pageMeta(page.path);
         const card = document.createElement('a');
         card.className = 'card';
-        card.href = `./${item.path}/`;
+        card.href = `./${item.path}/${item.query ? `?${item.query}` : ''}`;
         card.innerHTML = `
           <div class="card-top">
             <div class="tile" data-tone="${item.tone}">${initials(item.title)}</div>
