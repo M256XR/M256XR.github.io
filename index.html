@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>M256XR.github.io</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f4f6f8;
+      --panel: #ffffff;
+      --text: #17191c;
+      --muted: #66707a;
+      --line: #d9dee5;
+      --accent: #007c89;
+      --accent-2: #b11f5c;
+      --accent-3: #e1a500;
+      --shadow: 0 12px 34px rgba(22, 29, 37, 0.08);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        linear-gradient(90deg, rgba(0, 124, 137, 0.08), transparent 34%),
+        linear-gradient(135deg, rgba(177, 31, 92, 0.08), transparent 28%),
+        var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    a { color: inherit; }
+
+    .shell {
+      width: min(100%, 980px);
+      margin: 0 auto;
+      padding: 34px 20px 48px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 28px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .brand-mark {
+      width: 38px;
+      height: 38px;
+      border-radius: 8px;
+      background:
+        linear-gradient(135deg, var(--accent) 0 45%, transparent 45%),
+        linear-gradient(315deg, var(--accent-2) 0 46%, var(--accent-3) 46%);
+      box-shadow: var(--shadow);
+      flex: 0 0 auto;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(22px, 3vw, 30px);
+      font-weight: 720;
+      letter-spacing: 0;
+      line-height: 1.15;
+    }
+
+    .sub {
+      margin: 4px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .repo-link {
+      display: inline-flex;
+      align-items: center;
+      height: 34px;
+      padding: 0 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.72);
+      text-decoration: none;
+      font-size: 14px;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+
+    .repo-link:hover { color: var(--text); border-color: #b7c0cb; }
+
+    .section-head {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 12px;
+    }
+
+    h2 {
+      margin: 0;
+      font-size: 15px;
+      color: var(--muted);
+      font-weight: 650;
+      letter-spacing: 0;
+    }
+
+    .status {
+      min-height: 20px;
+      color: var(--muted);
+      font-size: 13px;
+      text-align: right;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+      gap: 12px;
+    }
+
+    .card {
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      min-height: 168px;
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.88);
+      box-shadow: var(--shadow);
+      text-decoration: none;
+    }
+
+    .card:hover {
+      border-color: #a9b5c2;
+      transform: translateY(-1px);
+    }
+
+    .card-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .tile {
+      width: 44px;
+      height: 44px;
+      border-radius: 8px;
+      display: grid;
+      place-items: center;
+      color: #fff;
+      font-weight: 760;
+      background: var(--accent);
+      overflow: hidden;
+    }
+
+    .tile[data-tone="magenta"] { background: var(--accent-2); }
+    .tile[data-tone="gold"] { background: var(--accent-3); color: #1f1600; }
+
+    .path {
+      color: var(--muted);
+      font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+      font-size: 12px;
+    }
+
+    .card-title {
+      margin: 0;
+      font-size: 18px;
+      line-height: 1.25;
+      letter-spacing: 0;
+    }
+
+    .summary {
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .open {
+      margin-top: 18px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      height: 34px;
+      width: max-content;
+      min-width: 92px;
+      padding: 0 12px;
+      border-radius: 8px;
+      background: #172026;
+      color: #fff;
+      font-size: 14px;
+      font-weight: 650;
+    }
+
+    .empty {
+      display: none;
+      padding: 18px;
+      border: 1px dashed var(--line);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.7);
+      color: var(--muted);
+    }
+
+    .footer {
+      margin-top: 28px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    @media (max-width: 620px) {
+      .shell { padding: 22px 14px 36px; }
+      .topbar, .section-head { align-items: flex-start; flex-direction: column; }
+      .status { text-align: left; }
+      .repo-link { width: 100%; justify-content: center; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true"></div>
+        <div>
+          <h1>M256XR.github.io</h1>
+          <p class="sub">Subdirectory index launcher</p>
+        </div>
+      </div>
+      <a class="repo-link" href="https://github.com/M256XR/M256XR.github.io">GitHub Repository</a>
+    </header>
+
+    <div class="section-head">
+      <h2>Pages</h2>
+      <div class="status" id="status">Loading...</div>
+    </div>
+
+    <section class="grid" id="pageGrid" aria-live="polite"></section>
+    <div class="empty" id="emptyState">No subdirectory index pages found.</div>
+
+    <footer class="footer">
+      Links point to folders that contain an index.html.
+    </footer>
+  </main>
+
+  <script>
+    const REPO_CONTENTS = 'https://api.github.com/repos/M256XR/M256XR.github.io/contents';
+    const FALLBACK_PAGES = [
+      {
+        path: 'poke',
+        title: 'PotaKB Configurator',
+        summary: 'PotaKB firmware v3 settings and keymap editor.',
+        tone: 'teal',
+      },
+      {
+        path: 'funya',
+        title: 'funya',
+        summary: 'Standalone page under this GitHub Pages site.',
+        tone: 'magenta',
+      },
+    ];
+
+    const META = {
+      poke: FALLBACK_PAGES[0],
+      funya: FALLBACK_PAGES[1],
+    };
+
+    function initials(title) {
+      return title
+        .split(/[\s_-]+/)
+        .filter(Boolean)
+        .slice(0, 2)
+        .map(part => part[0])
+        .join('')
+        .toUpperCase();
+    }
+
+    function pageMeta(path) {
+      return {
+        path,
+        title: path,
+        summary: `/${path}/index.html`,
+        tone: 'gold',
+        ...(META[path] || {}),
+      };
+    }
+
+    function render(pages, sourceLabel) {
+      const grid = document.getElementById('pageGrid');
+      const empty = document.getElementById('emptyState');
+      const status = document.getElementById('status');
+      grid.innerHTML = '';
+
+      if (!pages.length) {
+        empty.style.display = 'block';
+        status.textContent = sourceLabel;
+        return;
+      }
+
+      empty.style.display = 'none';
+      for (const page of pages) {
+        const item = pageMeta(page.path);
+        const card = document.createElement('a');
+        card.className = 'card';
+        card.href = `./${item.path}/`;
+        card.innerHTML = `
+          <div class="card-top">
+            <div class="tile" data-tone="${item.tone}">${initials(item.title)}</div>
+            <div class="path">/${item.path}/</div>
+          </div>
+          <div>
+            <h3 class="card-title">${item.title}</h3>
+            <p class="summary">${item.summary}</p>
+          </div>
+          <span class="open">Open</span>
+        `;
+        grid.appendChild(card);
+      }
+      status.textContent = sourceLabel;
+    }
+
+    async function discoverPages() {
+      render(FALLBACK_PAGES, 'Static links');
+
+      try {
+        const root = await fetch(REPO_CONTENTS, { headers: { Accept: 'application/vnd.github+json' } });
+        if (!root.ok) throw new Error(`GitHub API ${root.status}`);
+        const entries = await root.json();
+        const dirs = entries.filter(entry => entry.type === 'dir' && !entry.name.startsWith('.'));
+        const checks = await Promise.all(dirs.map(async dir => {
+          const res = await fetch(`${REPO_CONTENTS}/${encodeURIComponent(dir.name)}/index.html`, {
+            headers: { Accept: 'application/vnd.github+json' },
+          });
+          return res.ok ? { path: dir.name } : null;
+        }));
+        const pages = checks.filter(Boolean).sort((a, b) => a.path.localeCompare(b.path));
+        if (pages.length) render(pages, 'Auto detected');
+      } catch (err) {
+        document.getElementById('status').textContent = 'Static links';
+      }
+    }
+
+    discoverPages();
+  </script>
+</body>
+</html>
