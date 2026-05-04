@@ -1,6 +1,6 @@
 'use strict';
 // ===================================================
-// PotaKB Configurator v3.0 - main script
+// PotaKB Configurator v3.0.2 - main script
 // ===================================================
 
 // ===================================================
@@ -334,7 +334,7 @@ window.addEventListener('DOMContentLoaded', () => {
   renderKeyboard();
   buildPalette('special');
   syncConfigToForm();
-  addLog('info', 'PotaKB Configurator v3.0 起動完了');
+  addLog('info', 'PotaKB Configurator v3.0.2 起動完了');
 });
 
 // ===================================================
